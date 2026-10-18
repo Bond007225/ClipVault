@@ -4,6 +4,8 @@ A MyPlayer-first basketball game. You build one player exactly how you want, fro
 
 This is a standalone project. It has nothing to do with the ClipVault app elsewhere in this repo.
 
+This web version is the fast prototype and companion creator. The production game for PC and consoles is the Unreal Engine 5 project in `../CourtLifeUE/`. It uses the same gameplay math, ported to C++ with parity tests, and imports build codes made here.
+
 ## Run it
 
 ```bash
@@ -66,8 +68,8 @@ The core is kept separate from rendering on purpose. The jumpshot or combo you s
 
 These are the things the community keeps asking for, roughly in order:
 
-1. **Better player models:** swap the primitive rig for a rigged glTF body with blend shapes for face sculpting (face scan later).
-2. **Motion-captured animation:** keep the creator data but drive real animation clips, blending bases and releases on a skeleton.
+1. **Current-gen graphics:** the Unreal Engine 5 project (`../CourtLifeUE/`) with MetaHuman players, Lumen and Nanite. See its production plan.
+2. **Motion-captured animation:** the same creator data drives mocap clips in Unreal, blending bases and releases on a skeleton.
 3. **More of the bag:** signature size-ups, dribble styles, hop steps, eurosteps, layups and dunks, plus a dunk creator.
 4. **Full games:** 3v3 and 5v5 with teammate AI, passing, rebounding, fouls and a shot clock.
 5. **Progression without pay-to-win:** earn upgrades by playing, with no paid currency for attributes.

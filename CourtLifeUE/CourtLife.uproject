@@ -1,0 +1,18 @@
+{
+	"FileVersion": 3,
+	"EngineAssociation": "5.6",
+	"Category": "Games",
+	"Description": "CourtLife - MyPlayer-first basketball",
+	"Modules": [
+		{
+			"Name": "CourtLife",
+			"Type": "Runtime",
+			"LoadingPhase": "Default",
+			"AdditionalDependencies": [ "Engine", "CoreUObject" ]
+		}
+	],
+	"Plugins": [
+		{ "Name": "EnhancedInput", "Enabled": true }
+	],
+	"TargetPlatforms": [ "Windows" ]
+}
