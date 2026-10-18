@@ -1,0 +1,209 @@
+{
+  "atlas_size": 2048,
+  "edge_margin_px": 16,
+  "gutter_px": 32,
+  "px_per_cm": 17,
+  "uv_convention": "U wraps around the limb (Min.X = front), V runs down the limb (Min.Y = joint nearest torso); origin top-left",
+  "slot_order": [
+    "Neck",
+    "LeftUpperArm",
+    "RightUpperArm",
+    "LeftForearm",
+    "RightForearm",
+    "LeftHand",
+    "RightHand",
+    "LeftCalf",
+    "RightCalf"
+  ],
+  "regions": [
+    {
+      "slot": "Neck",
+      "index": 0,
+      "x": 1270,
+      "y": 16,
+      "w": 680,
+      "h": 212,
+      "aspect": 3.2,
+      "circumference_cm": 40.0,
+      "length_cm": 12.5,
+      "uv_min": [
+        0.6201171875,
+        0.0078125
+      ],
+      "uv_max": [
+        0.9521484375,
+        0.111328125
+      ],
+      "pixel_aspect": 3.2075,
+      "px_per_cm": 16.96
+    },
+    {
+      "slot": "LeftUpperArm",
+      "index": 1,
+      "x": 16,
+      "y": 16,
+      "w": 595,
+      "h": 629,
+      "aspect": 0.9459,
+      "circumference_cm": 35.0,
+      "length_cm": 37.0,
+      "uv_min": [
+        0.0078125,
+        0.0078125
+      ],
+      "uv_max": [
+        0.29833984375,
+        0.31494140625
+      ],
+      "pixel_aspect": 0.9459,
+      "px_per_cm": 17.0
+    },
+    {
+      "slot": "RightUpperArm",
+      "index": 2,
+      "x": 643,
+      "y": 16,
+      "w": 595,
+      "h": 629,
+      "aspect": 0.9459,
+      "circumference_cm": 35.0,
+      "length_cm": 37.0,
+      "uv_min": [
+        0.31396484375,
+        0.0078125
+      ],
+      "uv_max": [
+        0.6044921875,
+        0.31494140625
+      ],
+      "pixel_aspect": 0.9459,
+      "px_per_cm": 17.0
+    },
+    {
+      "slot": "LeftForearm",
+      "index": 3,
+      "x": 16,
+      "y": 677,
+      "w": 459,
+      "h": 510,
+      "aspect": 0.9,
+      "circumference_cm": 27.0,
+      "length_cm": 30.0,
+      "uv_min": [
+        0.0078125,
+        0.33056640625
+      ],
+      "uv_max": [
+        0.23193359375,
+        0.57958984375
+      ],
+      "pixel_aspect": 0.9,
+      "px_per_cm": 17.0
+    },
+    {
+      "slot": "RightForearm",
+      "index": 4,
+      "x": 643,
+      "y": 677,
+      "w": 459,
+      "h": 510,
+      "aspect": 0.9,
+      "circumference_cm": 27.0,
+      "length_cm": 30.0,
+      "uv_min": [
+        0.31396484375,
+        0.33056640625
+      ],
+      "uv_max": [
+        0.5380859375,
+        0.57958984375
+      ],
+      "pixel_aspect": 0.9,
+      "px_per_cm": 17.0
+    },
+    {
+      "slot": "LeftHand",
+      "index": 5,
+      "x": 1270,
+      "y": 260,
+      "w": 391,
+      "h": 340,
+      "aspect": 1.15,
+      "circumference_cm": 23.0,
+      "length_cm": 20.0,
+      "uv_min": [
+        0.6201171875,
+        0.126953125
+      ],
+      "uv_max": [
+        0.81103515625,
+        0.29296875
+      ],
+      "pixel_aspect": 1.15,
+      "px_per_cm": 17.0
+    },
+    {
+      "slot": "RightHand",
+      "index": 6,
+      "x": 1270,
+      "y": 632,
+      "w": 391,
+      "h": 340,
+      "aspect": 1.15,
+      "circumference_cm": 23.0,
+      "length_cm": 20.0,
+      "uv_min": [
+        0.6201171875,
+        0.30859375
+      ],
+      "uv_max": [
+        0.81103515625,
+        0.474609375
+      ],
+      "pixel_aspect": 1.15,
+      "px_per_cm": 17.0
+    },
+    {
+      "slot": "LeftCalf",
+      "index": 7,
+      "x": 16,
+      "y": 1219,
+      "w": 578,
+      "h": 765,
+      "aspect": 0.7556,
+      "circumference_cm": 34.0,
+      "length_cm": 45.0,
+      "uv_min": [
+        0.0078125,
+        0.59521484375
+      ],
+      "uv_max": [
+        0.2900390625,
+        0.96875
+      ],
+      "pixel_aspect": 0.7556,
+      "px_per_cm": 17.0
+    },
+    {
+      "slot": "RightCalf",
+      "index": 8,
+      "x": 626,
+      "y": 1219,
+      "w": 578,
+      "h": 765,
+      "aspect": 0.7556,
+      "circumference_cm": 34.0,
+      "length_cm": 45.0,
+      "uv_min": [
+        0.3056640625,
+        0.59521484375
+      ],
+      "uv_max": [
+        0.587890625,
+        0.96875
+      ],
+      "pixel_aspect": 0.7556,
+      "px_per_cm": 17.0
+    }
+  ]
+}
