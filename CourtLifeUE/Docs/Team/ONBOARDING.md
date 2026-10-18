@@ -21,7 +21,7 @@ The code already expects these names. If you need to change one, talk to the tec
 | Garments | Skeletal meshes on the body skeleton. Material params `Primary`, `Secondary`, `Tertiary`; jerseys also have scalar `Number` | `Equip()` |
 | Catalog keys | Hair `fade`, `afro`, `dreads`…; jerseys `tank`, `tee`, `sleeved`; shorts `short`, `standard`, `long`; shoes `low`, `mid`, `high`; socks `ankle`, `crew`, `high`. These match the web creator, so build codes import | `CLCosmeticsCatalog` data asset |
 | Accessories | `headband`, `armSleeve_left/right/both`, `legSleeve_left/right/both`, `wristband_left/right` | `ImportBuildCode` |
-| Tattoo stencils | Grayscale texture, R = ink. `TattooRegions` has one UV rect plus aspect per slot in `ECLTattooSlot` order | `RepaintTattoos()` |
+| Tattoo stencils | RGBA: R = ink, G = accent, B = 0, A = max(R,G). `TattooRegions` has one UV rect plus aspect per slot in `ECLTattooSlot` order (layout: `Docs/TechArt/MATERIALS.md`) | `RepaintTattoos()` |
 
 ### Animation (animators, tech artist)
 

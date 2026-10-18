@@ -9,3 +9,5 @@ DerivedDataCache/
 *.sdf
 *.suo
 .idea/
+__pycache__/
+*.pyc
