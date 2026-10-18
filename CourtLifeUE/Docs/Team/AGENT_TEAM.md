@@ -44,3 +44,21 @@ The right-hand column is the part to bring in later, when you have the hardware 
 - **Character Artist:** production tattoo stencil set (procedural, R = ink / G = accent) with checks and a preview sheet.
 - **Environment Artist:** park and gym half-court textures at regulation dimensions, line tests, Unreal blockout script, park court brief.
 - **Animator:** naming conventions, mocap shot list, anim blueprint spec, timing reference generated from code.
+
+**Sprint 1 results (all delivered and committed):**
+- **Gameplay Programmer:** layups and dunks are playable in the browser prototype. 49 JS tests pass, and the C++ core passes 26 tests with 1,363 checks, with the JS/C++ parity tests matching exactly.
+- **Technical Artist:** setup script, master materials and data assets (unverified in Unreal); tattoo atlas layout with 14 tests.
+- **Character Artist:** 10 tattoo stencils at 1024² with automated checks and a preview sheet.
+- **Environment Artist:** park and gym court textures at 2048²; 41 tests passing; Unreal blockout script (unverified in Unreal); park court brief.
+- **Animator:** naming conventions, shot list (about 5 mocap stage days), anim blueprint spec, timing table generated from the game code.
+
+### Sprint 2 backlog (from Sprint 1 reports)
+- **Gameplay Programmer:**
+  - Draw tattoo stencils through a stamp material so ink and accent colors both apply; the current draw ignores the accent color.
+  - Animator requests R1 (dribble moves travel twice as far: disable root motion while the code moves the player), R10 (shooting mid-combo puts the ball in the wrong hand), R3 and R4 (anim blueprint getters and missing profile fields), R2 (mirror flag for left-hand moves).
+  - A small C++ anim instance (R0).
+  - Fix the camera flipping behind the backboard under the rim; restore body contact with the defender during finishes; block logic driven by the Block rating.
+- **Technical Artist:** a tattoo stamp material, approval of the floor material parameter names (then added to the contracts), a texture import step for all SourceArt, a jersey number digit atlas.
+- **Character Artist:** clothing color-mask templates (jersey, shorts, shoes); cosmetic catalog rows; a second batch of tattoo designs.
+- **Environment Artist:** a packed mask texture and a detail normal map, backboard textures, a full-court variant.
+- **Animator:** reshape the prototype's shot and dribble poses to match the shot list; better dunk poses.
