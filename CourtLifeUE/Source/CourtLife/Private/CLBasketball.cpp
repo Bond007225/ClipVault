@@ -22,7 +22,7 @@ void ACLBasketball::Hold(USceneComponent* Hand, FName Socket)
 	AttachToComponent(Hand, FAttachmentTransformRules::SnapToTargetNotIncludingScale, Socket);
 }
 
-void ACLBasketball::Shoot(bool bMake, int32 Points, float DistanceFt)
+void ACLBasketball::Shoot(bool bMake, int32 Points, float DistanceFt, float FlightTimeSec)
 {
 	Court = ACLCourt::Find(this);
 	if (!Court.IsValid()) return;
@@ -39,7 +39,8 @@ void ACLBasketball::Shoot(bool bMake, int32 Points, float DistanceFt)
 		Target = Court->RimCenter() + FVector(FMath::Cos(A) * R, FMath::Sin(A) * R, 0.1 * CLUnitsPerFoot);
 	}
 	const double G = GetWorld()->GetGravityZ();
-	FlightTime = 0.75f + DistanceFt * 0.028f;
+	// Finishes pass a short flight time (a dunk is thrown straight through); jumpers arc by distance.
+	FlightTime = FlightTimeSec > 0.f ? FlightTimeSec : 0.75f + DistanceFt * 0.028f;
 	const FVector Start = GetActorLocation();
 	Velocity = (Target - Start) / FlightTime;
 	Velocity.Z = (Target.Z - Start.Z - 0.5 * G * FlightTime * FlightTime) / FlightTime;
@@ -73,6 +74,12 @@ void ACLBasketball::Tick(float DeltaSeconds)
 		const double Kick = FMath::FRandRange(6.0, 12.0) * CLUnitsPerFoot;
 		BecomeLoose(Out * Kick + FVector(0, 0, FMath::FRandRange(6.0, 12.0) * CLUnitsPerFoot));
 	}
+}
+
+void ACLBasketball::Deflect(const FVector& InVelocity)
+{
+	DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+	BecomeLoose(InVelocity);
 }
 
 void ACLBasketball::BecomeLoose(const FVector& InVelocity)

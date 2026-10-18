@@ -9,6 +9,7 @@
 #include "CLAttributes.h"
 #include "CLDefender.h"
 #include "CLDribble.h"
+#include "CLFinishing.h"
 #include "CLJumpshot.h"
 #include "CLShooting.h"
 
@@ -89,6 +90,42 @@ TEST(MakeProbabilityMatchesWeb) {
     const float contest = ContestLevel(g.defDist, g.defHeight, g.resist);
     NEAR(contest, g.contest, 1e-4);
     NEAR(MakeProbability(static_cast<ReleaseGrade>(g.grade), g.rating, g.dist, contest), g.prob, 1e-4);
+  }
+}
+
+TEST(FinishingMatchesWeb) {
+  for (const auto& g : kFinishGolden) {
+    FinishInput in;
+    in.distanceFt = g.dist;
+    in.speedFtPerSec = g.speed;
+    in.closeShot = g.closeShot;
+    in.drivingLayup = g.layup;
+    in.drivingDunk = g.dunk;
+    in.vertical = g.vert;
+    in.heightIn = g.height;
+    const FinishType type = ChooseFinish(in);
+    CHECK(static_cast<int>(type) == g.type);
+    const FinishType as = type == FinishType::None ? FinishType::Layup : type;
+    Attributes a;
+    a.fill(60);
+    Get(a, Attr::CloseShot) = g.closeShot;
+    Get(a, Attr::DrivingLayup) = g.layup;
+    Get(a, Attr::DrivingDunk) = g.dunk;
+    Get(a, Attr::Vertical) = g.vert;
+    CHECK(ChooseFinish(g.dist, g.speed, a, g.height) == type);
+    const int rating = FinishRating(a, as, g.dist);
+    CHECK(rating == g.rating);
+    const FinishProfile p = ComputeFinishProfile(as, {rating, g.vert, g.height, g.dist});
+    NEAR(p.gatherMs, g.gatherMs, 1e-9);
+    NEAR(p.durationMs, g.durationMs, 1e-9);
+    NEAR(p.releaseTimeMs, g.releaseMs, 1e-9);
+    NEAR(p.greenWindowMs, g.greenMs, 1e-9);
+    NEAR(p.jumpFt, g.jumpFt, 1e-5);
+    NEAR(p.releaseHeightFt, g.relHeight, 1e-5);
+    NEAR(p.contestResist, g.resist, 1e-5);
+    const double contest = ContestLevel(g.defDist, g.defHeight, p.contestResist);
+    NEAR(contest, g.contest, 1e-4);
+    NEAR(FinishMakeProbability(as, rating, contest, g.dist), g.prob, 1e-4);
   }
 }
 
@@ -187,6 +224,67 @@ TEST(ThreePointLine) {
   CHECK(IsThree({0, 25}));
   CHECK(!IsThree({0, 15}));
   CHECK(IsThree({22.5f, 0}));
+}
+
+// ---------------------------------------------------------------- finishing
+TEST(FinishOnlyNearTheRim) {
+  FinishInput in;
+  in.drivingDunk = 85;
+  in.vertical = 85;
+  in.heightIn = 80;
+  in.speedFtPerSec = 12;
+  in.distanceFt = 12;
+  CHECK(ChooseFinish(in) == FinishType::None);
+  in.distanceFt = 3;
+  CHECK(ChooseFinish(in) == FinishType::Dunk);
+  in.distanceFt = 8.5;
+  CHECK(ChooseFinish(in) == FinishType::Layup);
+}
+
+TEST(NoDunkWithoutRatingOrReach) {
+  FinishInput in;
+  in.distanceFt = 3;
+  in.speedFtPerSec = 12;
+  in.drivingDunk = 40;
+  in.vertical = 85;
+  in.heightIn = 80;
+  CHECK(ChooseFinish(in) == FinishType::Layup);
+  in.drivingDunk = 85;
+  in.vertical = 30;
+  in.heightIn = 70;
+  CHECK(DunkReachIn(70, 30, 12) < kRimHeightIn + kDunkClearanceIn);
+  CHECK(ChooseFinish(in) == FinishType::Layup);
+}
+
+TEST(SpeedFavorsDunks) {
+  FinishInput in;
+  in.distanceFt = 3;
+  in.drivingLayup = 75;
+  in.drivingDunk = 65;
+  in.vertical = 75;
+  in.heightIn = 78;
+  in.speedFtPerSec = 0;
+  CHECK(ChooseFinish(in) == FinishType::Layup);
+  in.speedFtPerSec = 14;
+  CHECK(ChooseFinish(in) == FinishType::Dunk);
+}
+
+TEST(FinishProfileOrdering) {
+  for (FinishType t : {FinishType::Layup, FinishType::Dunk}) {
+    const FinishProfile p = ComputeFinishProfile(t, {});
+    CHECK(p.type == t);
+    CHECK(p.gatherMs > 0 && p.releaseTimeMs > p.gatherMs && p.releaseTimeMs < p.durationMs);
+    CHECK(p.contestResist >= 0 && p.contestResist <= 1);
+  }
+  CHECK(ComputeFinishProfile(FinishType::Dunk, {}).contestResist > ComputeFinishProfile(FinishType::Layup, {}).contestResist);
+}
+
+TEST(FinishOddsRespondToContestAndSkill) {
+  CHECK(FinishMakeProbability(FinishType::Dunk, 85, 0, 2) > 0.9);
+  CHECK(FinishMakeProbability(FinishType::Layup, 75, 0.8, 3) < FinishMakeProbability(FinishType::Layup, 75, 0, 3));
+  CHECK(FinishMakeProbability(FinishType::Layup, 95, 0, 3) > FinishMakeProbability(FinishType::Layup, 60, 0, 3));
+  CHECK(FinishMakeProbability(FinishType::Layup, 75, 0, 8) < FinishMakeProbability(FinishType::Layup, 75, 0, 3));
+  CHECK(IsBlocked(false, 0.8) && !IsBlocked(true, 0.8) && !IsBlocked(false, 0.2));
 }
 
 // ---------------------------------------------------------------- defender

@@ -37,6 +37,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Jumpshot") TMap<FName, TObjectPtr<UAnimMontage>> ShotBases;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Jumpshot") TMap<FName, TObjectPtr<UAnimSequence>> ShotReleases;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Dribble") TMap<FName, FCLHandedMontage> DribbleMoves;
+	/** Finish montages keyed "layup" and "dunk"; each carries a "Release" notify at the core's release time. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Finishing") TMap<FName, TObjectPtr<UAnimMontage>> Finishes;
 
 	virtual FPrimaryAssetId GetPrimaryAssetId() const override { return FPrimaryAssetId(TEXT("CLAnimSet"), GetFName()); }
 };

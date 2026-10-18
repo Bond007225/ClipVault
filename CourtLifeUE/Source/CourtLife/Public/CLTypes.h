@@ -20,6 +20,10 @@ enum class ECLTattooSlot : uint8
 UENUM(BlueprintType)
 enum class ECLReleaseGrade : uint8 { Green, SlightlyEarly, SlightlyLate, Early, Late };
 
+/** Jumpers are timed on the meter; layups and dunks are picked near the rim (courtlife::ChooseFinish). */
+UENUM(BlueprintType)
+enum class ECLShotType : uint8 { Jumper, Layup, Dunk };
+
 USTRUCT(BlueprintType)
 struct FCLBody
 {
@@ -172,6 +176,8 @@ USTRUCT(BlueprintType)
 struct FCLShotResult
 {
 	GENERATED_BODY()
+	UPROPERTY(BlueprintReadOnly) ECLShotType ShotType = ECLShotType::Jumper;
+	/** Timing grade; only meaningful for jumpers (finishes have no meter yet). */
 	UPROPERTY(BlueprintReadOnly) ECLReleaseGrade Grade = ECLReleaseGrade::Late;
 	UPROPERTY(BlueprintReadOnly) float TimingDeltaMs = 0.f;
 	UPROPERTY(BlueprintReadOnly) float Contest = 0.f;
@@ -179,4 +185,6 @@ struct FCLShotResult
 	UPROPERTY(BlueprintReadOnly) float DistanceFt = 0.f;
 	UPROPERTY(BlueprintReadOnly) bool bThree = false;
 	UPROPERTY(BlueprintReadOnly) bool bMade = false;
+	/** A missed finish that was contested hard enough to read as a block. */
+	UPROPERTY(BlueprintReadOnly) bool bBlocked = false;
 };

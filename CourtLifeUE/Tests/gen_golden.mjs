@@ -4,6 +4,7 @@ import { computeShotProfile, SHOT_BASES, SHOT_RELEASES } from '../../courtlife/s
 import { attributeCaps } from '../../courtlife/src/core/attributes.js';
 import { buildComboTimeline, DRIBBLE_MOVES } from '../../courtlife/src/core/dribble.js';
 import { makeProbability, contestLevel } from '../../courtlife/src/core/shooting.js';
+import { chooseFinish, finishProfile, finishMakeProbability, finishRating } from '../../courtlife/src/core/finishing.js';
 
 const bases = Object.keys(SHOT_BASES);
 const releases = Object.keys(SHOT_RELEASES);
@@ -59,6 +60,28 @@ for (let i = 0; i < 40; i++) {
   const contest = contestLevel(defDist < 0 ? null : defDist, defH, resist);
   const prob = makeProbability({ grade: grades[g], rating, distanceFt: dist, contest });
   out.push(`  {${g}, ${rating}, ${F(dist)}, ${F(defDist)}, ${defH}, ${F(resist)}, ${F(contest, 6)}, ${F(prob, 6)}},`);
+}
+out.push('};');
+
+// Finishing: finish choice, timing profile, rating and make odds.
+out.push('struct FinishGolden { float dist, speed; int closeShot, layup, dunk, vert, height; int type; int rating; float gatherMs, durationMs, releaseMs, greenMs, jumpFt, relHeight, resist, defDist; int defHeight; float contest, prob; };');
+out.push('static const FinishGolden kFinishGolden[] = {');
+const finishTypes = [null, 'layup', 'dunk'];
+for (let i = 0; i < 60; i++) {
+  const dist = +(rnd() * 11).toFixed(2);
+  const speed = i % 6 === 0 ? 0 : +(rnd() * 16).toFixed(2);
+  const attrs = { closeShot: 40 + Math.round(rnd() * 59), drivingLayup: 40 + Math.round(rnd() * 59), drivingDunk: 30 + Math.round(rnd() * 69), vertical: 30 + Math.round(rnd() * 69) };
+  const heightIn = 69 + Math.round(rnd() * 18);
+  const type = chooseFinish({ distanceFt: dist, speedFtPerSec: speed, attrs, heightIn });
+  // Profile/odds are checked even for jumper-range spots (as a layup) so every row exercises the math.
+  const asType = type ?? 'layup';
+  const rating = finishRating(attrs, asType, dist);
+  const p = finishProfile(asType, { rating, vertical: attrs.vertical, heightIn, distanceFt: dist });
+  const defDist = i % 5 === 0 ? -1 : +(1 + rnd() * 7).toFixed(2);
+  const defH = 72 + Math.round(rnd() * 14);
+  const contest = contestLevel(defDist < 0 ? null : defDist, defH, p.contestResist);
+  const prob = finishMakeProbability({ type: asType, rating, contest, distanceFt: dist });
+  out.push(`  {${F(dist)}, ${F(speed)}, ${attrs.closeShot}, ${attrs.drivingLayup}, ${attrs.drivingDunk}, ${attrs.vertical}, ${heightIn}, ${finishTypes.indexOf(type)}, ${rating}, ${F(p.gatherMs)}, ${F(p.durationMs)}, ${F(p.releaseTimeMs)}, ${F(p.greenWindowMs)}, ${F(p.jumpFt, 6)}, ${F(p.releaseHeightFt, 6)}, ${F(p.contestResist, 6)}, ${F(defDist)}, ${defH}, ${F(contest, 6)}, ${F(prob, 6)}},`);
 }
 out.push('};');
 console.log(out.join('\n'));

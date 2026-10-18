@@ -8,7 +8,8 @@ import { computeShotProfile, sampleShotPose } from '../core/jumpshot.js';
 import { buildComboTimeline, sampleCombo } from '../core/dribble.js';
 import { idlePose, runPose, reachArm, dribbleBallHeight, plantedHipHeight, standTaller } from '../core/locomotion.js';
 import { RIM, gradeRelease, contestLevel, makeProbability, isThree, shotRating, BASELINE_Z } from '../core/shooting.js';
-import { lerp, invLerp, clamp } from '../core/math.js';
+import { lerp, invLerp, clamp, smoothstep } from '../core/math.js';
+import { chooseFinish, finishProfile, finishMakeProbability, finishRating, isBlocked, sampleFinishPose } from '../core/finishing.js';
 import { createDefender, stepDefender, ankleBreakCheck, startContest } from './defender.js';
 
 const GRAVITY = -32; // ft/s^2
@@ -57,7 +58,7 @@ export function openGame(root, startPlayer, { onExit }) {
     ...me.combos.map((c) => el('div', {}, el('kbd', {}, c.key), c.name)),
   );
   const help = el('div', { class: 'help' },
-    el('div', {}, el('kbd', {}, 'WASD'), ' move  ', el('kbd', {}, 'Shift'), ' sprint  ', el('kbd', {}, 'Space'), ' hold & release to shoot'),
+    el('div', {}, el('kbd', {}, 'WASD'), ' move  ', el('kbd', {}, 'Shift'), ' sprint  ', el('kbd', {}, 'Space'), ' hold & release to shoot (near the rim: layup / dunk)'),
     el('div', {}, el('kbd', {}, 'T'), ' toggle defender  ', el('kbd', {}, 'Esc'), ' back to MyPlayer'),
   );
   root.replaceChildren(
@@ -85,7 +86,7 @@ export function openGame(root, startPlayer, { onExit }) {
   def.z = 20;
   let defenderOn = true;
   const b = { mode: 'held', pos: new THREE.Vector3(), vel: new THREE.Vector3(), t: 0, made: false, hitRim: false, value: 2, settle: 0 };
-  const stats = { pts: 0, fgm: 0, fga: 0, tpm: 0, tpa: 0, greens: 0, ankles: 0 };
+  const stats = { pts: 0, fgm: 0, fga: 0, tpm: 0, tpa: 0, greens: 0, ankles: 0, dunks: 0 };
   const keys = new Set();
 
   function onKeyDown(e) {
@@ -135,6 +136,7 @@ export function openGame(root, startPlayer, { onExit }) {
       el('div', {}, el('strong', {}, `${stats.tpm}/${stats.tpa}`), el('span', {}, `3PT ${pct(stats.tpm, stats.tpa)}`)),
       el('div', {}, el('strong', {}, stats.greens), el('span', {}, 'GREENS')),
       el('div', {}, el('strong', {}, stats.ankles), el('span', {}, 'ANKLES')),
+      el('div', {}, el('strong', {}, stats.dunks), el('span', {}, 'DUNKS')),
     );
   }
   renderScore();
@@ -171,7 +173,10 @@ export function openGame(root, startPlayer, { onExit }) {
 
   function startShot() {
     if (p.state !== 'dribble' && p.state !== 'combo') return;
+    const dist = Math.hypot(p.x - RIM.x, p.z - RIM.z);
+    const finish = chooseFinish({ distanceFt: dist, speedFtPerSec: Math.hypot(p.vx, p.vz), attrs, heightIn: me.body.heightIn });
     if (p.state === 'combo') p.hand = p.combo.endHand;
+    if (finish) return startFinish(finish, dist);
     p.state = 'shooting';
     p.shotT = 0;
     p.released = false;
@@ -184,6 +189,69 @@ export function openGame(root, startPlayer, { onExit }) {
     meterGreen.style.height = `${(profile.greenWindowMs / max) * 100}%`;
     meter.className = 'meter';
     if (defenderOn) startContest(def, p);
+  }
+
+  // Layups and dunks: no meter yet. The finish carries the ball to the rim and
+  // resolves at the profile's release time (a timed finish meter can hook in later).
+  function startFinish(type, dist) {
+    const rating = finishRating(attrs, type, dist);
+    const fp = finishProfile(type, { rating, vertical: attrs.vertical, heightIn: me.body.heightIn, distanceFt: dist });
+    // Take off toward a spot just in front of the rim, on the line we attacked from.
+    const stop = type === 'dunk' ? 1.4 : 2.2;
+    const len = dist || 1;
+    const to = dist > stop
+      ? { x: RIM.x + ((p.x - RIM.x) / len) * stop, z: RIM.z + ((p.z - RIM.z) / len) * stop }
+      : { x: p.x, z: p.z };
+    p.state = 'finishing';
+    p.finish = { type, profile: fp, rating, dist, t: 0, resolved: false, from: { x: p.x, z: p.z }, to };
+    p.vx = 0;
+    p.vz = 0;
+    p.yaw = Math.atan2(RIM.x - p.x, RIM.z - p.z);
+    if (defenderOn) startContest(def, p);
+  }
+
+  function resolveFinish() {
+    const f = p.finish;
+    f.resolved = true;
+    const fp = f.profile;
+    const defDist = defenderOn && def.stumble <= 0 ? Math.hypot(def.x - p.x, def.z - p.z) : null;
+    const contest = contestLevel(defDist, opp.body.heightIn, fp.contestResist);
+    const chance = finishMakeProbability({ type: f.type, rating: f.rating, contest, distanceFt: f.dist });
+    const made = Math.random() < chance;
+    const blocked = isBlocked(made, contest);
+    const name = f.type === 'dunk' ? 'Dunk' : 'Layup';
+    say(`${name} · ${Math.round(chance * 100)}% · ${contest > 0.6 ? 'Smothered' : contest > 0.3 ? 'Contested' : 'Open'}`, made ? 'green' : 'yellow');
+
+    rig.root.updateMatrixWorld(true);
+    rig.palmWorld('R', b.pos);
+    b.t = 0;
+    b.made = made;
+    b.value = 2;
+    b.three = false;
+    b.finish = f.type;
+    stats.fga++;
+    renderScore();
+    if (blocked) {
+      // Swatted: send it away from the rim, back toward the floor.
+      const away = Math.atan2(p.x - RIM.x, p.z - RIM.z) + (Math.random() - 0.5) * 1.2;
+      b.mode = 'loose';
+      b.settle = 0;
+      b.vel.set(Math.sin(away) * 14, 3 + Math.random() * 3, Math.cos(away) * 14);
+      say('BLOCKED!', 'red big');
+      return;
+    }
+    const target = new THREE.Vector3(RIM.x, RIM.y + (f.type === 'dunk' ? 0.4 : 0.15), RIM.z);
+    if (!made) {
+      const a = Math.random() * Math.PI * 2;
+      target.x += Math.cos(a) * RIM.radius * 0.95;
+      target.z += Math.sin(a) * RIM.radius * 0.95;
+      target.y = RIM.y + 0.1;
+    }
+    // Dunks are thrown straight through; layups get a soft little arc.
+    const T = f.type === 'dunk' ? 0.14 : 0.45;
+    b.mode = 'flight';
+    b.flightT = T;
+    b.vel.set((target.x - b.pos.x) / T, (target.y - b.pos.y - 0.5 * GRAVITY * T * T) / T, (target.z - b.pos.z) / T);
   }
 
   function releaseShot() {
@@ -210,6 +278,7 @@ export function openGame(root, startPlayer, { onExit }) {
     b.made = made;
     b.value = three ? 3 : 2;
     b.three = three;
+    b.finish = null;
     // Misses aim at a point on the rim, makes at the centre (a touch high).
     const target = new THREE.Vector3(RIM.x, RIM.y + 0.15, RIM.z);
     if (!made) {
@@ -230,8 +299,11 @@ export function openGame(root, startPlayer, { onExit }) {
     stats.pts += b.value;
     stats.fgm++;
     if (b.three) stats.tpm++;
+    if (b.finish === 'dunk') stats.dunks++;
     renderScore();
-    say(b.value === 3 ? 'SPLASH! +3' : 'BUCKET +2', 'green');
+    if (b.finish === 'dunk') say('DUNK! +2', 'green big');
+    else if (b.finish === 'layup') say('Layup +2', 'green');
+    else say(b.value === 3 ? 'SPLASH! +3' : 'BUCKET +2', 'green');
     hoop.net.scale.set(1, 1.25, 1);
   }
 
@@ -281,6 +353,16 @@ export function openGame(root, startPlayer, { onExit }) {
       p.shotT += dt;
       if (!p.released && p.shotT * 1000 >= profile.durationMs * 0.95) releaseShot();
       if (p.shotT * 1000 >= profile.durationMs) p.state = b.mode === 'held' ? 'dribble' : 'noball';
+    } else if (p.state === 'finishing') {
+      const f = p.finish;
+      f.t += dt * 1000;
+      const pose = sampleFinishPose(f.profile, f.t / f.profile.durationMs);
+      const k = smoothstep(pose.travel);
+      p.x = lerp(f.from.x, f.to.x, k);
+      p.z = lerp(f.from.z, f.to.z, k);
+      p.finishPose = pose;
+      if (!f.resolved && f.t >= f.profile.releaseTimeMs) resolveFinish();
+      if (f.t >= f.profile.durationMs) p.state = b.mode === 'held' ? 'dribble' : 'noball';
     } else {
       const inp = inputVector();
       const sprint = keys.has('shift');
@@ -303,7 +385,7 @@ export function openGame(root, startPlayer, { onExit }) {
     p.x = clamp(p.x, COURT.minX, COURT.maxX);
     p.z = clamp(p.z, COURT.minZ, COURT.maxZ);
     // The defender holds their ground unless they're on the floor.
-    if (defenderOn && def.stumble <= 0) {
+    if (defenderOn && def.stumble <= 0 && p.state !== 'finishing') {
       const dx = p.x - def.x;
       const dz = p.z - def.z;
       const d = Math.hypot(dx, dz);
@@ -337,6 +419,8 @@ export function openGame(root, startPlayer, { onExit }) {
       localBall = s.ball;
     } else if (p.state === 'shooting') {
       rig.applyPose(sampleShotPose(profile, p.shotT * 1000 / profile.durationMs));
+    } else if (p.state === 'finishing') {
+      rig.applyPose(p.finishPose);
     } else {
       const moving = (p.speed ?? 0) > 1.2;
       const pose = moving ? runPose(p.runPhase, invLerp(4, 16, p.speed)) : idlePose(time);
@@ -348,7 +432,7 @@ export function openGame(root, startPlayer, { onExit }) {
       rig.applyPose(pose);
     }
     if (b.mode === 'held') {
-      if (p.state === 'shooting') {
+      if (p.state === 'shooting' || p.state === 'finishing') {
         rig.root.updateMatrixWorld(true);
         rig.palmWorld('R', ball.position);
         ball.position.y += 0.2;
@@ -376,7 +460,7 @@ export function openGame(root, startPlayer, { onExit }) {
         // Clank: kick away from the rim centre and up.
         const out = new THREE.Vector3(b.pos.x - RIM.x, 0, b.pos.z - RIM.z).normalize();
         b.vel.set(out.x * (6 + Math.random() * 6), 6 + Math.random() * 6, out.z * (6 + Math.random() * 6) + 2);
-        say('Off the rim', 'red');
+        say(b.finish === 'dunk' ? 'Rimmed out!' : b.finish === 'layup' ? 'Missed layup' : 'Off the rim', 'red');
       }
       b.settle = 0;
     }
@@ -395,7 +479,7 @@ export function openGame(root, startPlayer, { onExit }) {
     if (b.mode !== 'flight') {
       b.settle += dt;
       const d = Math.hypot(b.pos.x - p.x, b.pos.z - p.z);
-      if (p.state !== 'shooting' && ((d < 3 && b.pos.y < 6) || b.settle > (b.mode === 'through' ? 1.6 : 3.5))) giveBall();
+      if (p.state !== 'shooting' && p.state !== 'finishing' && ((d < 3 && b.pos.y < 6) || b.settle > (b.mode === 'through' ? 1.6 : 3.5))) giveBall();
     }
     ball.position.copy(b.pos);
   }

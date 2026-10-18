@@ -31,6 +31,7 @@ The code already expects these names. If you need to change one, talk to the tec
 | Jumpshot bases | Montages keyed by base ID: `classic`, `quickSet`, `highSet`, `sideSet`, `oneMotion`, `setShot`, `legKick`, `hitch`. Each has a **Release** notify at the release frame | `CLAnimSet.ShotBases`, `CLShotComponent` |
 | Jumpshot releases | Upper-body sequences: `quickFlick`, `highArc`, `push`, `smoothHold`, `guideFlare`, `slingshot`, `wristy`. Blended by `ReleaseBlend` in the anim BP | `CLAnimSet.ShotReleases` |
 | Dribble moves | Right-hand and left-hand montages per move: `crossover`, `killCross`, `betweenLegs`, `behindBack`, `hesitation`, `inAndOut`, `spin`, `stepBack`, `snatchBack`, `pound`. They are time-scaled to the core's durations, so author them at natural speed | `CLAnimSet.DribbleMoves`, `CLDribbleComponent` |
+| Finishes | Montages `CLAnimSet.Finishes` keyed `layup` and `dunk`, each with a **Release** notify at the finish profile's release time | `CLShotComponent` |
 | Defender | Montages for stumble and contest | `CLDefenderController` |
 
 ### Environments

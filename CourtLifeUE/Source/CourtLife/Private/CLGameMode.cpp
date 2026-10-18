@@ -45,7 +45,7 @@ void ACLGameMode::HandleShot(const FCLShotResult& Result)
 {
 	++Stats.FieldGoalsAttempted;
 	if (Result.bThree) ++Stats.ThreesAttempted;
-	if (Result.Grade == ECLReleaseGrade::Green) ++Stats.Greens;
+	if (Result.ShotType == ECLShotType::Jumper && Result.Grade == ECLReleaseGrade::Green) ++Stats.Greens;
 	if (Defender)
 	{
 		if (ACLDefenderController* AI = Cast<ACLDefenderController>(Defender->GetController())) AI->ReactToShot();

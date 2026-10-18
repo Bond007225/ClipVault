@@ -6,6 +6,7 @@
 #include "CLTypes.h"
 #include "CLAttributes.h"
 #include "CLDribble.h"
+#include "CLFinishing.h"
 #include "CLJumpshot.h"
 #include "CLShooting.h"
 #include "CLCoreBridge.generated.h"
@@ -23,6 +24,8 @@ namespace CLBridge
 	int32 Rating(const FMyPlayerBuild& Build, courtlife::Attr Attr);
 	FCLShotProfile FromCore(const courtlife::ShotProfile& Profile);
 	ECLReleaseGrade FromCore(courtlife::ReleaseGrade Grade);
+	ECLShotType FromCore(courtlife::FinishType Type);
+	courtlife::FinishType ToCore(ECLShotType Type);
 	inline ECLHand FromCore(courtlife::Hand Hand) { return Hand == courtlife::Hand::Right ? ECLHand::Right : ECLHand::Left; }
 	inline courtlife::Hand ToCore(ECLHand Hand) { return Hand == ECLHand::Right ? courtlife::Hand::Right : courtlife::Hand::Left; }
 
@@ -62,6 +65,10 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "CourtLife|Jumpshot")
 	static FCLShotProfile ComputeShotProfile(const FMyPlayerBuild& Build);
+
+	/** Layup or dunk for a shot from DistanceFt (to the rim) at SpeedFtPerSec; Jumper when too far. */
+	UFUNCTION(BlueprintPure, Category = "CourtLife|Finishing")
+	static ECLShotType ChooseFinish(const FMyPlayerBuild& Build, float DistanceFt, float SpeedFtPerSec);
 
 	UFUNCTION(BlueprintPure, Category = "CourtLife|Dribble")
 	static TArray<FString> ValidateCombo(const FMyPlayerBuild& Build, const FCLDribbleCombo& Combo);

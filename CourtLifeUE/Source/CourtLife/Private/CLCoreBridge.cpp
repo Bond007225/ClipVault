@@ -79,6 +79,26 @@ namespace CLBridge
 	{
 		return static_cast<ECLReleaseGrade>(static_cast<uint8>(G));
 	}
+
+	ECLShotType FromCore(courtlife::FinishType T)
+	{
+		switch (T)
+		{
+		case courtlife::FinishType::Layup: return ECLShotType::Layup;
+		case courtlife::FinishType::Dunk: return ECLShotType::Dunk;
+		default: return ECLShotType::Jumper;
+		}
+	}
+
+	courtlife::FinishType ToCore(ECLShotType T)
+	{
+		switch (T)
+		{
+		case ECLShotType::Layup: return courtlife::FinishType::Layup;
+		case ECLShotType::Dunk: return courtlife::FinishType::Dunk;
+		default: return courtlife::FinishType::None;
+		}
+	}
 }
 
 FMyPlayerBuild UCLBuildLibrary::MakeDefaultBuild()
@@ -182,6 +202,11 @@ FCLShotProfile UCLBuildLibrary::ComputeShotProfile(const FMyPlayerBuild& Build)
 	using courtlife::Attr;
 	const courtlife::ShotContext Ctx{CLBridge::Rating(Build, Attr::ThreePoint), CLBridge::Rating(Build, Attr::Vertical), Build.Body.HeightIn};
 	return CLBridge::FromCore(courtlife::ComputeShotProfile(CLBridge::ToCore(Build.Jumpshot), Ctx));
+}
+
+ECLShotType UCLBuildLibrary::ChooseFinish(const FMyPlayerBuild& Build, float DistanceFt, float SpeedFtPerSec)
+{
+	return CLBridge::FromCore(courtlife::ChooseFinish(DistanceFt, SpeedFtPerSec, CLBridge::ToCore(Build.Attributes), Build.Body.HeightIn));
 }
 
 TArray<FString> UCLBuildLibrary::ValidateCombo(const FMyPlayerBuild& Build, const FCLDribbleCombo& Combo)

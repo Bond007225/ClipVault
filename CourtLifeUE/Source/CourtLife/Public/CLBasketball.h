@@ -32,7 +32,11 @@ public:
 
 	/** Launch from the current position toward the court's rim. */
 	UFUNCTION(BlueprintCallable, Category = "CourtLife|Ball")
-	void Shoot(bool bMake, int32 Points, float DistanceFt);
+	void Shoot(bool bMake, int32 Points, float DistanceFt, float FlightTimeSec = 0.f);
+
+	/** Knock the ball loose from the hand (a blocked finish). Velocity in uu/s. */
+	UFUNCTION(BlueprintCallable, Category = "CourtLife|Ball")
+	void Deflect(const FVector& InVelocity);
 
 	UFUNCTION(BlueprintPure, Category = "CourtLife|Ball")
 	ECLBallState GetState() const { return State; }
