@@ -1,0 +1,259 @@
+:root {
+  --bg: #0b0b12;
+  --panel: #15151f;
+  --panel-2: #1d1d2a;
+  --line: #2a2a3a;
+  --text: #f1f1f6;
+  --muted: #9a9ab0;
+  --accent: #7c5cff;
+  --accent-2: #00d4ff;
+  --radius: 14px;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+html, body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button, select, input { font: inherit; color: inherit; }
+
+.topbar {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: max(14px, env(safe-area-inset-top)) 20px 10px;
+}
+.brand { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 20px; align-self: center; }
+.tagline { margin: 0; color: var(--muted); font-size: 14px; }
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
+  gap: 24px;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 8px 20px 40px;
+}
+
+/* ------------------------------------------------------------- preview */
+.stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  position: sticky;
+  top: 12px;
+  align-self: start;
+}
+
+.phone {
+  position: relative;
+  height: min(72vh, 680px);
+  aspect-ratio: 1179 / 2556;
+  border-radius: 13% / 6%;
+  overflow: hidden;
+  background: #000;
+  box-shadow: 0 0 0 10px #050508, 0 0 0 11px #33334a, 0 30px 80px rgba(0, 0, 0, 0.6);
+}
+.phone canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; border-radius: inherit; }
+
+.lock-ui {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  color: #fff;
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+  container-type: inline-size;
+}
+.lock-head { padding-top: 15cqw; text-align: center; }
+.lock-date { font-size: 5cqw; font-weight: 600; opacity: 0.9; }
+.lock-time {
+  font-size: 25cqw;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-family: "SF Pro Rounded", ui-rounded, system-ui, sans-serif;
+}
+.lock-foot { display: flex; justify-content: space-between; align-items: center; padding: 0 11cqw 8cqw; }
+.lock-btn {
+  width: 13cqw; height: 13cqw; border-radius: 50%;
+  display: grid; place-items: center;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  font-size: 5.5cqw;
+}
+.lock-hint { width: 34cqw; height: 1.4cqw; border-radius: 1cqw; background: rgba(255, 255, 255, 0.85); align-self: flex-end; margin-bottom: -4cqw; }
+
+/* Android-style clock: stacked hours/minutes, left-ish and lighter. */
+.lock-ui.android .lock-head { text-align: left; padding: 18cqw 9cqw 0; }
+.lock-ui.android .lock-time {
+  font-size: 30cqw;
+  font-weight: 400;
+  white-space: pre-line;
+  line-height: 0.9;
+  font-family: "Google Sans", Roboto, system-ui, sans-serif;
+}
+.lock-ui.android .lock-date { order: 2; margin-top: 3cqw; font-weight: 500; }
+.lock-ui.android .lock-head { display: flex; flex-direction: column; }
+.lock-ui.android .lock-hint { display: none; }
+
+.stage-actions { display: flex; gap: 12px; align-items: center; }
+.device-meta { margin: 0; font-size: 13px; color: var(--muted); }
+
+/* ------------------------------------------------------------- controls */
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.group { display: flex; flex-direction: column; gap: 8px; }
+.group.two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.group.two > div { display: flex; flex-direction: column; gap: 8px; }
+.label { font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.label output { color: var(--text); margin-left: 4px; text-transform: none; }
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+select {
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+input[type="range"] { width: 100%; accent-color: var(--accent); }
+
+.chips { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.chip {
+  position: relative;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--panel-2);
+  cursor: pointer;
+  aspect-ratio: 3 / 4;
+}
+.chip canvas { width: 100%; height: 100%; display: block; }
+.chip span {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  padding: 14px 4px 4px;
+  font-size: 11.5px; font-weight: 600; text-align: center;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.75));
+}
+.chip[aria-checked="true"] { border-color: var(--accent-2); }
+
+.swatches { display: flex; gap: 8px; flex-wrap: wrap; }
+.swatch {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  padding: 0;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.3);
+}
+.swatch[aria-checked="true"] { border-color: #fff; }
+
+.custom-colors input[type="color"] {
+  width: 44px; height: 34px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: none;
+  cursor: pointer;
+}
+
+.toggle { display: inline-flex; gap: 8px; align-items: center; cursor: pointer; font-size: 14px; }
+.toggle input { accent-color: var(--accent); width: 18px; height: 18px; }
+
+.file-btn {
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--panel-2);
+  border: 1px dashed var(--muted);
+  cursor: pointer;
+  font-weight: 600;
+}
+.file-btn input { display: none; }
+.row select { flex: 1; width: auto; }
+
+.actions { display: flex; gap: 10px; }
+.actions > * { flex: 1; }
+
+button, .button {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  cursor: pointer;
+  font-weight: 600;
+  text-decoration: none;
+}
+.primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  border: 0;
+  color: #fff;
+}
+.ghost { background: transparent; }
+button:disabled { opacity: 0.5; cursor: progress; }
+
+.guide { border-top: 1px solid var(--line); padding-top: 14px; }
+.guide summary { cursor: pointer; font-weight: 600; }
+.tabs { display: flex; gap: 6px; margin: 12px 0 4px; }
+.tabs button { flex: 1; padding: 8px; font-size: 13px; }
+.tabs button[aria-selected="true"] { border-color: var(--accent-2); color: var(--accent-2); }
+.tab-panel { margin: 8px 0 0; padding-left: 20px; color: var(--muted); font-size: 14px; }
+.tab-panel li { margin-bottom: 6px; }
+.tab-panel b { color: var(--text); }
+
+/* ------------------------------------------------------------- dialog */
+dialog {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--panel);
+  color: var(--text);
+  padding: 0;
+  width: min(420px, calc(100vw - 32px));
+}
+dialog::backdrop { background: rgba(0, 0, 0, 0.7); }
+.dialog-body { position: relative; padding: 22px; display: flex; flex-direction: column; gap: 14px; }
+.dialog-body h2 { margin: 0; font-size: 18px; }
+.muted { color: var(--muted); margin: 0; font-size: 14px; }
+.progress { height: 8px; border-radius: 4px; background: var(--panel-2); overflow: hidden; }
+.bar { height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), var(--accent-2)); transition: width 0.1s linear; }
+#resultVideo { width: 100%; max-height: 50vh; object-fit: contain; border-radius: 12px; background: #000; }
+.close { position: absolute; top: 10px; right: 10px; width: 34px; height: 34px; padding: 0; border-radius: 50%; font-size: 20px; }
+
+.offscreen { position: fixed; left: -100000px; top: 0; pointer-events: none; }
+
+/* ------------------------------------------------------------- mobile */
+@media (max-width: 820px) {
+  .layout { grid-template-columns: 1fr; padding: 4px 16px 32px; gap: 18px; }
+  .stage { position: static; }
+  .phone { height: min(62vh, 560px); }
+  .chips { grid-template-columns: repeat(4, 1fr); }
+}
+@media (max-width: 380px) {
+  .chips { grid-template-columns: repeat(3, 1fr); }
+  .group.two { grid-template-columns: 1fr; }
+}

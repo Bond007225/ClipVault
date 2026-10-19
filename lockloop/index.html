@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Lockloop</title>
+  <meta name="description" content="Make animated lock screen wallpapers for iPhone and Android.">
+  <meta name="theme-color" content="#0b0b12">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <img src="icon.svg" alt="" width="28" height="28">
+      <span>Lockloop</span>
+    </div>
+    <p class="tagline">Animated lock screens for iPhone &amp; Android</p>
+  </header>
+
+  <main class="layout">
+    <section class="stage" aria-label="Preview">
+      <div class="phone" id="phone">
+        <canvas id="preview"></canvas>
+        <div class="lock-ui ios" id="lockUi" aria-hidden="true">
+          <div class="lock-head">
+            <div class="lock-date" id="lockDate"></div>
+            <div class="lock-time" id="lockTime"></div>
+          </div>
+          <div class="lock-foot">
+            <span class="lock-btn">&#128294;</span>
+            <span class="lock-hint"></span>
+            <span class="lock-btn">&#128247;</span>
+          </div>
+        </div>
+      </div>
+      <div class="stage-actions">
+        <label class="toggle"><input type="checkbox" id="showLock" checked> Show clock</label>
+        <button type="button" class="ghost" id="shuffle">&#127922; Shuffle</button>
+      </div>
+      <p class="device-meta" id="deviceMeta"></p>
+    </section>
+
+    <section class="panel" aria-label="Controls">
+      <div class="group">
+        <label class="label" for="device">Phone</label>
+        <select id="device"></select>
+      </div>
+
+      <div class="group">
+        <span class="label">Scene</span>
+        <div class="chips" id="scenes" role="radiogroup" aria-label="Scene"></div>
+      </div>
+
+      <div class="group" id="photoGroup" hidden>
+        <span class="label">Photo</span>
+        <div class="row">
+          <label class="file-btn">
+            <input type="file" id="photoInput" accept="image/*">
+            Choose photo
+          </label>
+          <select id="photoMotion" aria-label="Photo motion">
+            <option value="zoom">Slow zoom</option>
+            <option value="pan">Pan</option>
+            <option value="sway">Sway</option>
+            <option value="breathe">Breathe</option>
+            <option value="none">Still</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="group">
+        <span class="label">Colors</span>
+        <div class="swatches" id="palettes" role="radiogroup" aria-label="Palette"></div>
+        <div class="row custom-colors">
+          <input type="color" id="c0" aria-label="Color 1">
+          <input type="color" id="c1" aria-label="Color 2">
+          <input type="color" id="c2" aria-label="Color 3">
+        </div>
+      </div>
+
+      <div class="group two">
+        <div>
+          <label class="label" for="speed">Speed <output id="speedOut"></output></label>
+          <input type="range" id="speed" min="1" max="4" step="1">
+        </div>
+        <div>
+          <label class="label" for="detail">Detail</label>
+          <input type="range" id="detail" min="0" max="1" step="0.1">
+        </div>
+      </div>
+
+      <div class="group two">
+        <div>
+          <label class="label" for="overlay">Overlay</label>
+          <select id="overlay"></select>
+        </div>
+        <div>
+          <label class="label" for="overlayAmount">Amount</label>
+          <input type="range" id="overlayAmount" min="0" max="1" step="0.1">
+        </div>
+      </div>
+
+      <div class="group two">
+        <div>
+          <label class="label" for="duration">Loop length</label>
+          <select id="duration">
+            <option value="3">3 s (Live Photo)</option>
+            <option value="5">5 s</option>
+            <option value="8">8 s</option>
+            <option value="10">10 s</option>
+            <option value="15">15 s (Samsung max)</option>
+          </select>
+        </div>
+        <div>
+          <label class="label" for="quality">Export size</label>
+          <select id="quality">
+            <option value="1">Full resolution</option>
+            <option value="0.75">75%</option>
+            <option value="0.5">50% (fast)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="group">
+        <label class="toggle"><input type="checkbox" id="vignette"> Darken edges (helps clock contrast)</label>
+      </div>
+
+      <div class="actions">
+        <button type="button" class="primary" id="exportVideo">Export video</button>
+        <button type="button" class="ghost" id="exportStill">Save still</button>
+      </div>
+
+      <details class="guide" id="guide">
+        <summary>How to set it as your lock screen</summary>
+        <div class="tabs" role="tablist">
+          <button type="button" role="tab" data-tab="ios" aria-selected="true">iPhone</button>
+          <button type="button" role="tab" data-tab="samsung" aria-selected="false">Samsung</button>
+          <button type="button" role="tab" data-tab="android" aria-selected="false">Pixel &amp; others</button>
+        </div>
+        <ol class="tab-panel" data-panel="ios">
+          <li>Pick the <b>3 s (Live Photo)</b> loop and export the video, then save it to Photos (Share &rarr; Save Video).</li>
+          <li>iOS only animates lock screens from a <b>Live Photo</b>, so convert the video with a video-to-Live-Photo app from the App Store.</li>
+          <li>Go to <b>Settings &rarr; Wallpaper &rarr; Add New Wallpaper &rarr; Photos</b> and pick the Live Photo.</li>
+          <li>Make sure the Live Photo button is on. The animation plays when you wake the phone.</li>
+        </ol>
+        <ol class="tab-panel" data-panel="samsung" hidden>
+          <li>Export the video (up to 15 s) and save it to Gallery.</li>
+          <li>Open <b>Settings &rarr; Wallpaper and style &rarr; Change wallpapers</b>.</li>
+          <li>Choose <b>Gallery</b>, select the video and apply it to the <b>Lock screen</b>.</li>
+        </ol>
+        <ol class="tab-panel" data-panel="android" hidden>
+          <li>Export the video and save it to your phone.</li>
+          <li>Install a video live-wallpaper app from Google Play.</li>
+          <li>Pick the video in that app and set it as your lock screen (or both screens).</li>
+        </ol>
+      </details>
+    </section>
+  </main>
+
+  <dialog id="exportDialog">
+    <div class="dialog-body">
+      <h2 id="dialogTitle">Rendering…</h2>
+      <div class="progress" id="progressWrap"><div class="bar" id="progressBar"></div></div>
+      <p class="muted" id="dialogNote">Keep this tab open while the video renders.</p>
+      <video id="resultVideo" playsinline loop muted autoplay hidden></video>
+      <div class="actions" id="resultActions" hidden>
+        <a class="primary button" id="downloadLink" download>Download</a>
+        <button type="button" class="ghost" id="shareBtn" hidden>Save / Share</button>
+      </div>
+      <button type="button" class="close" id="closeDialog" aria-label="Close">&times;</button>
+    </div>
+  </dialog>
+
+  <script src="vendor/mp4-muxer.js"></script>
+  <script src="scenes.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
