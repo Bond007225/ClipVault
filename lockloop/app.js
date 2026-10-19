@@ -30,7 +30,8 @@
     overlay: 'none',
     overlayAmount: 0.5,
     vignette: true,
-    duration: 5,
+    duration: 3,
+    playback: 'once',
     quality: 1,
     seed: 20251019,
     photoMotion: 'zoom',
@@ -46,7 +47,7 @@
     scenes: $('scenes'), photoGroup: $('photoGroup'), photoInput: $('photoInput'), photoMotion: $('photoMotion'),
     palettes: $('palettes'), c: [$('c0'), $('c1'), $('c2')], speed: $('speed'), speedOut: $('speedOut'),
     detail: $('detail'), overlay: $('overlay'), overlayAmount: $('overlayAmount'), duration: $('duration'),
-    quality: $('quality'), vignette: $('vignette'), exportVideo: $('exportVideo'), exportStill: $('exportStill'),
+    quality: $('quality'), vignette: $('vignette'), playback: $('playback'), wake: $('wake'), exportVideo: $('exportVideo'), exportStill: $('exportStill'),
     dialog: $('exportDialog'), dialogTitle: $('dialogTitle'), dialogNote: $('dialogNote'), progressWrap: $('progressWrap'),
     progressBar: $('progressBar'), resultVideo: $('resultVideo'), resultActions: $('resultActions'),
     downloadLink: $('downloadLink'), shareBtn: $('shareBtn'), closeDialog: $('closeDialog'),
@@ -73,6 +74,11 @@
       /* storage unavailable: settings just won't persist */
     }
   }
+
+  // "Once" clips ease in from the rest frame and settle back onto it, so the
+  // phone can play them a single time on wake and then show a still image.
+  const easeInOut = (t) => 0.5 - 0.5 * Math.cos(Math.PI * Math.min(1, Math.max(0, t)));
+  const phaseAt = (t) => (state.playback === 'once' ? easeInOut(t) : t % 1);
 
   const currentDevice = () => DEVICES.find((d) => d.id === state.device) || DEVICES[3];
 
@@ -152,10 +158,14 @@
   }
 
   // --------------------------------------------------------------- state
+  const REPLAY_KEYS = ['scene', 'overlay', 'speed', 'playback', 'duration', 'seed', 'photo', 'photoMotion'];
+
   function update(patch) {
     Object.assign(state, patch);
     syncUI();
     saveSettings();
+    if (REPLAY_KEYS.some((k) => k in patch)) wake();
+    else startPreview();
   }
 
   function syncUI() {
@@ -165,7 +175,10 @@
     els.lockUi.className = `lock-ui ${dev.platform}`;
     els.lockUi.hidden = !state.showLock;
     els.showLock.checked = state.showLock;
-    els.deviceMeta.textContent = `${dev.w} × ${dev.h} · ${state.duration}s seamless loop`;
+    const once = state.playback === 'once';
+    els.deviceMeta.textContent = `${dev.w} × ${dev.h} · ${state.duration}s · ${once ? 'plays once on wake' : 'seamless loop'}`;
+    els.playback.value = state.playback;
+    els.wake.hidden = !once;
 
     els.scenes.querySelectorAll('.chip').forEach((c) => c.setAttribute('aria-checked', String(c.dataset.scene === state.scene)));
     els.photoGroup.hidden = state.scene !== 'photo';
@@ -206,6 +219,9 @@
     els.detail.addEventListener('change', () => update({ detail: Number(els.detail.value) }));
     els.overlay.addEventListener('change', () => update({ overlay: els.overlay.value }));
     els.overlayAmount.addEventListener('change', () => update({ overlayAmount: Number(els.overlayAmount.value) }));
+    els.playback.addEventListener('change', () => update({ playback: els.playback.value }));
+    els.wake.addEventListener('click', wake);
+    els.phone.addEventListener('click', wake);
     els.duration.addEventListener('change', () => update({ duration: Number(els.duration.value) }));
     els.quality.addEventListener('change', () => update({ quality: Number(els.quality.value) }));
     els.vignette.addEventListener('change', () => update({ vignette: els.vignette.checked }));
@@ -261,7 +277,8 @@
   // ------------------------------------------------------------- preview
   const pctx = els.preview.getContext('2d');
   const previewRenderer = createRenderer();
-  let loopStart = performance.now();
+  let playStart = performance.now();
+  let rafId = 0;
   let exporting = false;
 
   function sizePreview() {
@@ -275,12 +292,23 @@
     }
   }
 
+  // The preview only requests frames while something is moving: in "once"
+  // mode it plays a single pass, rests on the still frame and goes idle.
   function tick(now) {
-    if (!exporting) {
-      const p = ((now - loopStart) / 1000 / state.duration) % 1;
-      previewRenderer.draw(pctx, els.preview.width, els.preview.height, p, renderOptions());
-    }
-    requestAnimationFrame(tick);
+    rafId = 0;
+    if (exporting) return;
+    const t = (now - playStart) / 1000 / state.duration;
+    previewRenderer.draw(pctx, els.preview.width, els.preview.height, phaseAt(t), renderOptions());
+    if (state.playback !== 'once' || t < 1) rafId = requestAnimationFrame(tick);
+  }
+
+  function startPreview() {
+    if (!rafId) rafId = requestAnimationFrame(tick);
+  }
+
+  function wake() {
+    playStart = performance.now();
+    startPreview();
   }
 
   function updateClock() {
@@ -354,9 +382,10 @@
 
     try {
       const frames = Math.round(state.duration * FPS);
+      const once = state.playback === 'once';
       for (let i = 0; i < frames; i++) {
         if (encodeError) throw encodeError;
-        renderer.draw(ctx, w, h, i / frames, o);
+        renderer.draw(ctx, w, h, once ? phaseAt(i / (frames - 1)) : i / frames, o);
         const frame = new VideoFrame(canvas, { timestamp: Math.round((i * 1e6) / FPS), duration: Math.round(1e6 / FPS) });
         encoder.encode(frame, { keyFrame: i % FPS === 0 });
         frame.close();
@@ -404,8 +433,12 @@
     await new Promise((resolve) => {
       function step(now) {
         const elapsed = now - start;
-        if (elapsed >= total) return resolve();
-        renderer.draw(ctx, w, h, elapsed / total, o);
+        if (elapsed >= total) {
+          // Hold the rest frame briefly so the recorder captures the ending.
+          renderer.draw(ctx, w, h, phaseAt(1), o);
+          return setTimeout(resolve, 100);
+        }
+        renderer.draw(ctx, w, h, phaseAt(elapsed / total), o);
         onProgress(elapsed / total);
         requestAnimationFrame(step);
       }
@@ -447,7 +480,7 @@
     } finally {
       exporting = false;
       els.exportVideo.disabled = false;
-      loopStart = performance.now();
+      wake();
     }
   }
 
@@ -515,7 +548,10 @@
   showGuideTab(currentDevice().platform === 'android' ? 'samsung' : 'ios');
   if (state.scene === 'photo') state.scene = 'liquid';
   syncUI();
-  window.addEventListener('resize', sizePreview);
+  window.addEventListener('resize', () => {
+    sizePreview();
+    startPreview();
+  });
   setInterval(updateClock, 15000);
-  requestAnimationFrame(tick);
+  wake();
 })();

@@ -7,7 +7,8 @@ Make animated lock screen wallpapers for iPhone and Android, right in the phone'
 - **Palettes**: 8 presets plus 3 custom colors, with speed and detail sliders and a Shuffle button
 - **Live preview** in a phone frame with an iOS- or Android-style clock, so you can check that the clock stays readable
 - **Exact device sizes**: iPhone 16 Pro Max through SE, Galaxy S25/S25 Ultra, Pixel 9/9 Pro, and generic 1080×2400
-- **Seamless loops**: all motion completes whole cycles per loop, so the last frame flows into the first
+- **Play once on wake** (default): the clip starts from a still frame, eases into motion, and settles back onto exactly the same frame. The phone plays it once when you wake the screen, then shows a still image instead of animating constantly. The in-app preview does the same: it plays once, then stops drawing (tap the phone or **Wake** to replay).
+- **Continuous loop** (optional): all motion completes whole cycles per loop, so the last frame flows into the first
 - **Export**: H.264 MP4 rendered frame by frame (WebCodecs + [mp4-muxer](https://github.com/Vanilagy/mp4-muxer), MIT, vendored in `vendor/`). Browsers without WebCodecs fall back to real-time `MediaRecorder` capture. There's also a PNG still. On phones, **Save / Share** opens the system share sheet so you can save straight to Photos or Gallery.
 
 ## Run it
@@ -26,7 +27,7 @@ To use it on a phone, host the folder on any static host (GitHub Pages, Netlify,
 
 | Phone | How |
 | --- | --- |
-| iPhone | Export the **3 s (Live Photo)** loop and save it to Photos. Convert it to a Live Photo with a video-to-Live-Photo app, then go to Settings → Wallpaper → Add New → Photos. iOS can only animate the lock screen from a Live Photo. |
+| iPhone | Export a **3 s** clip in **Play once on wake** mode and save it to Photos. Convert it to a Live Photo with a video-to-Live-Photo app, then go to Settings → Wallpaper → Add New → Photos. iOS can only animate the lock screen from a Live Photo, and it plays it once per wake. If the converter lets you pick the key photo, choose the first frame. |
 | Samsung Galaxy | Settings → Wallpaper and style → Change wallpapers → Gallery → pick the video (up to 15 s) for the Lock screen. |
 | Pixel / other Android | Use a video live-wallpaper app from Google Play and pick the exported video. |
 

@@ -40,6 +40,7 @@
       </div>
       <div class="stage-actions">
         <label class="toggle"><input type="checkbox" id="showLock" checked> Show clock</label>
+        <button type="button" class="ghost" id="wake">&#9654; Wake</button>
         <button type="button" class="ghost" id="shuffle">&#127922; Shuffle</button>
       </div>
       <p class="device-meta" id="deviceMeta"></p>
@@ -105,11 +106,19 @@
         </div>
       </div>
 
+      <div class="group">
+        <label class="label" for="playback">Playback</label>
+        <select id="playback">
+          <option value="once">Play once on wake (saves battery)</option>
+          <option value="loop">Continuous loop</option>
+        </select>
+      </div>
+
       <div class="group two">
         <div>
-          <label class="label" for="duration">Loop length</label>
+          <label class="label" for="duration">Length</label>
           <select id="duration">
-            <option value="3">3 s (Live Photo)</option>
+            <option value="3">3 s (iPhone Live Photo)</option>
             <option value="5">5 s</option>
             <option value="8">8 s</option>
             <option value="10">10 s</option>
@@ -146,17 +155,20 @@
           <li>Pick the <b>3 s (Live Photo)</b> loop and export the video, then save it to Photos (Share &rarr; Save Video).</li>
           <li>iOS only animates lock screens from a <b>Live Photo</b>, so convert the video with a video-to-Live-Photo app from the App Store.</li>
           <li>Go to <b>Settings &rarr; Wallpaper &rarr; Add New Wallpaper &rarr; Photos</b> and pick the Live Photo.</li>
-          <li>Make sure the Live Photo button is on. The animation plays when you wake the phone.</li>
+          <li>Make sure the Live Photo button is on. iOS plays the animation once each time you wake the phone, then shows the still.</li>
+          <li>If your converter lets you pick the key photo, choose the <b>first frame</b>. Play-once clips end on that frame, so the animation settles into the still without a jump.</li>
         </ol>
         <ol class="tab-panel" data-panel="samsung" hidden>
           <li>Export the video (up to 15 s) and save it to Gallery.</li>
           <li>Open <b>Settings &rarr; Wallpaper and style &rarr; Change wallpapers</b>.</li>
           <li>Choose <b>Gallery</b>, select the video and apply it to the <b>Lock screen</b>.</li>
+          <li>Use <b>Play once on wake</b> so the clip eases to a stop on a still frame instead of cycling.</li>
         </ol>
         <ol class="tab-panel" data-panel="android" hidden>
           <li>Export the video and save it to your phone.</li>
           <li>Install a video live-wallpaper app from Google Play.</li>
           <li>Pick the video in that app and set it as your lock screen (or both screens).</li>
+          <li>For battery life, turn off looping in the app if it has that option, and export with <b>Play once on wake</b>.</li>
         </ol>
       </details>
     </section>
