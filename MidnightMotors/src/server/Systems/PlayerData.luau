@@ -93,13 +93,17 @@ end
 
 local function withRetries<T>(fn: () -> T): (boolean, T | string)
 	local lastErr: any
-	for attempt = 1, 4 do
+	-- in Studio a failure usually means API access is off; don't stall for 30s
+	local attempts = if RunService:IsStudio() then 1 else 4
+	for attempt = 1, attempts do
 		local ok, result = pcall(fn)
 		if ok then
 			return true, result
 		end
 		lastErr = result
-		task.wait(2 ^ attempt)
+		if attempt < attempts then
+			task.wait(2 ^ attempt)
+		end
 	end
 	return false, tostring(lastErr)
 end

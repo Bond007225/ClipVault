@@ -15,7 +15,14 @@ runs as soon as you sync it into an empty place.
 4. Press Play. The server builds the map in a few seconds and spawns your starter car at the Midnight Motors garage.
 5. To test saving, turn on *Game Settings → Security → Enable Studio Access to API Services*.
 
-You can also build a place file with `rojo build -o MidnightMotors.rbxlx`.
+**Without Rojo:** open the prebuilt `MidnightMotors.rbxlx` in Studio. It includes a copy of the map so you can see it in edit mode. When you press Play, the server rebuilds the map identically and wires it up to the game systems.
+
+To regenerate that file after changing code, you need [Lune](https://lune-org.github.io):
+```
+python tools/build_place.py                              # scripts -> MidnightMotors.rbxlx
+lune run tools/harness.luau MidnightMotors.rbxlx place   # bake the map into it
+lune run tools/harness.luau MidnightMotors.rbxlx both    # smoke-test server + client startup
+```
 
 ## Controls
 

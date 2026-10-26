@@ -36,7 +36,21 @@ local CONCRETE = Color3.fromRGB(160, 160, 155)
 local WHITE = Color3.fromRGB(235, 235, 235)
 local YELLOW = Color3.fromRGB(240, 190, 20)
 
-local rng = Random.new(20261025)
+-- Deterministic Park-Miller RNG (instead of Roblox's Random) so the map built
+-- into the place file for edit-mode preview matches the one built at runtime.
+local rngState = 20261025
+local rng = {}
+local function nextRaw(): number
+	rngState = (rngState * 16807) % 2147483647
+	return rngState / 2147483647
+end
+function rng:NextNumber(a: number?, b: number?): number
+	local lo, hi = a or 0, b or 1
+	return lo + nextRaw() * (hi - lo)
+end
+function rng:NextInteger(a: number, b: number): number
+	return math.min(b, a + math.floor(nextRaw() * (b - a + 1)))
+end
 
 export type TreeLights = { Stage: BasePart, Amber: { BasePart }, Green: BasePart, Red: BasePart }
 export type Strip = {
@@ -128,7 +142,7 @@ local function sign(parent: Instance, text: string, size: Vector3, cf: CFrame, b
 	label.BackgroundTransparency = 1
 	label.Text = text
 	label.TextScaled = true
-	label.Font = Enum.Font.GothamBlack
+	label.FontFace = Font.fromEnum(Enum.Font.GothamBlack)
 	label.TextColor3 = fg
 	label.Parent = gui
 	return p, label
@@ -716,6 +730,17 @@ function MapBuilder.meetAt(pos: Vector3): string?
 end
 
 function MapBuilder.init()
+	-- The place file ships with a preview copy of the map so it is visible in
+	-- edit mode; rebuild it so every part is wired up to the systems below.
+	local preview = workspace:FindFirstChild("Map")
+	if preview then
+		preview:Destroy()
+	end
+	for _, child in workspace:GetChildren() do
+		if child:IsA("SpawnLocation") or (child:IsA("BasePart") and child.Name == "Baseplate") then
+			child:Destroy()
+		end
+	end
 	root = Instance.new("Folder")
 	root.Name = "Map"
 	for _, name in { "Ground", "Roads", "Buildings", "Props", "Track" } do

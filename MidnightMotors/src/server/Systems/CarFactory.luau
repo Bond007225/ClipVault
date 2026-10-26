@@ -393,7 +393,7 @@ function CarFactory.build(geometryId: string, opts: BuildOptions): Model
 			label.BackgroundTransparency = 1
 			label.Text = "POLICE"
 			label.TextScaled = true
-			label.Font = Enum.Font.GothamBlack
+			label.FontFace = Font.fromEnum(Enum.Font.GothamBlack)
 			label.TextColor3 = Color3.fromRGB(20, 40, 120)
 			label.Parent = gui
 		end
