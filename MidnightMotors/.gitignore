@@ -1,5 +1,6 @@
 *.rbxl
 *.rbxlx
+!MidnightMotors.rbxlx
 *.rbxl.lock
 *.rbxlx.lock
 sourcemap.json
