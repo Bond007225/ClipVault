@@ -306,6 +306,31 @@ if mode == "both" then
 	if veh then
 		for _, f in veh:GetChildren() do print("  ", f.Name, #f:GetChildren()) end
 	end
+	-- traffic: spawn around the downtown spawn and the highway, drive 2 s,
+	-- then check every city car is still on a street
+	local systems = realGetService(game, "ServerScriptService"):FindFirstChild("Server"):FindFirstChild("Systems")
+	local Traffic = cache[systems:FindFirstChild("Traffic")]
+	local Config = cache[realGetService(game, "ReplicatedStorage"):FindFirstChild("Shared"):FindFirstChild("Config")]
+	local M = Config.Map
+	local C = M.CityBlocks * M.CellSize / 2
+	Traffic._spawnAround(roblox.Vector3.new(150, 0, 150))
+	Traffic._spawnAround(roblox.Vector3.new(M.RingHalfSize, 0, 1000))
+	print("traffic cars after spawn:", Traffic._count())
+	local off, onDeck = 0, 0
+	for _, car in ws.Vehicles.Traffic:GetChildren() do
+		local p = car.PrimaryPart.CFrame.Position
+		if p.Y > M.DeckHeight then
+			onDeck += 1
+		else
+			local rx = math.abs(((p.X + C) % M.CellSize + M.CellSize / 2) % M.CellSize - M.CellSize / 2)
+			local rz = math.abs(((p.Z + C) % M.CellSize + M.CellSize / 2) % M.CellSize - M.CellSize / 2)
+			if math.min(rx, rz) > M.RoadWidth / 2 then
+				off += 1
+				print("  off-road car at", p)
+			end
+		end
+	end
+	print("highway cars on deck:", onDeck, "city cars off-road:", off)
 	-- fake local player for the client
 	local plr = roblox.Instance.new("Player")
 	plr.Name = "Tester"

@@ -252,7 +252,7 @@ local function spawnRoadblock(p: Pursuit)
 	if not cf or d > 40 then
 		return
 	end
-	local ground = CFrame.new(cf.Position.X, 0.2, cf.Position.Z) * cf.Rotation
+	local ground = cf
 	local folder = Instance.new("Folder")
 	folder.Name = "Roadblock"
 	for _, offset in { -9, 9 } do
@@ -294,7 +294,7 @@ local function spawnSpikes(p: Pursuit)
 	if not cf or d > 40 then
 		return
 	end
-	local ground = CFrame.new(cf.Position.X, 0.2, cf.Position.Z) * cf.Rotation
+	local ground = cf
 	local folder = Instance.new("Folder")
 	folder.Name = "SpikeStrip"
 	local strip = Instance.new("Part")
@@ -394,7 +394,7 @@ local function startPursuit(player: Player, fromPatrol: any?)
 	pursuits[player] = p
 	if fromPatrol then
 		local cf = Traffic.takePatrol(fromPatrol)
-		local ground = CFrame.new(cf.Position.X, 0.2, cf.Position.Z) * cf.Rotation
+		local ground = cf
 		spawnUnit(p, "Cruiser", ground)
 	else
 		spawnNear(p)

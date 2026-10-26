@@ -24,13 +24,14 @@ Config.SpeedLimits = {
 -- Map layout
 ----------------------------------------------------------------------
 Config.Map = {
-	CityBlocks = 10, -- 10x10 grid of city blocks
-	CellSize = 280, -- road-centre to road-centre
+	CityBlocks = 18, -- 18x18 grid of city blocks (~5,400 studs across)
+	CellSize = 300, -- road-centre to road-centre
 	RoadWidth = 52,
 	SidewalkWidth = 8,
-	RingHalfSize = 1750, -- highway ring around the city (centreline)
+	RingHalfSize = 3200, -- highway ring around the city (centreline)
 	HighwayWidth = 96,
-	InterstateLength = 7200, -- long straight highway out to the tracks
+	InterstateLength = 9000, -- long straight highway out to the tracks
+	DeckHeight = 32, -- elevated highway surface height
 	QuarterMile = 1437, -- studs
 	HalfMile = 2874,
 }
@@ -451,7 +452,6 @@ Config.Police = {
 	EscapeRewardPerHeat = 300,
 	-- How many pursuit units chase you at each heat level
 	UnitsPerHeat = { 1, 2, 3, 4, 5 },
-	PatrolsPerLaneGroup = 2,
 	Units = {
 		Cruiser = {
 			Name = "Cruiser",
@@ -514,11 +514,17 @@ Config.Meet = {
 }
 
 Config.Traffic = {
-	HighwayCarsPerLane = 7,
-	InterstateCarsPerLane = 9,
-	CityCarsPerLane = 3,
+	-- traffic is spawned around each player and recycled when far away
+	CityCarsNearPlayer = 18, -- within CityRange of a player
+	CityRange = 700,
+	HighwayCarsPerLaneNearPlayer = 4, -- per highway lane near a player
+	HighwayRange = 1000,
+	MaxCars = 90,
+	DespawnRange = 1400,
+	SpawnPerTick = 4,
 	UpdateHz = 30,
-	ActiveRange = 1500,
+	PatrolChance = 0.12,
+	MaxPatrols = 6,
 }
 
 -- Fill these with your own uploaded audio asset ids (rbxassetid://...)

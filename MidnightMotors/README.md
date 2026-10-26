@@ -39,13 +39,13 @@ lune run tools/harness.luau MidnightMotors.rbxlx both    # smoke-test server + c
 
 ## What's in the world
 
-- **City**: a 10×10 grid of blocks (about 2,800 studs across). Downtown towers are tallest in the middle, and every intersection has a streetlight. Speed limit is 45 mph.
-- **Highway ring**: a 4-lane divided highway around the city, about 14,000 studs per lap, with speed cameras. Limit is 70 mph.
-- **Interstate**: 7,200 studs heading east, with a gas station exit, a rest-stop car meet, billboards and speed cameras. It ends at the track complex.
+- **City**: an 18×18 grid of blocks, about 5,400 studs across. It has districts: downtown skyscrapers in the middle, a ring of mid-rise offices and apartments, suburbs with houses and lawns, and an industrial area of warehouses in the south-east. Every intersection has a streetlight. Speed limit is 45 mph.
+- **Highway ring**: an elevated, 4-lane divided highway on pillars about 32 studs up. It runs around the city, about 25,600 studs per lap. It has **diamond interchanges** where the three main avenues on each side pass underneath. At each one, an exit ramp leaves on the right before the crossing and slopes down to the avenue, and an entrance ramp climbs back up and merges after it. Speed limit is 70 mph and there are speed cameras on the median.
+- **Interstate**: an elevated, 9,000-stud highway heading east. Interchange exits lead to a gas station and a rest-stop car meet. At the end it slopes back down to ground level at the outskirts, next to the track complex.
 - **Track complex (outskirts)**: a **quarter-mile** and a **half-mile** drag strip side by side. Each has two lanes, a christmas tree, a checkered finish gantry, a grandstand, a results board, a garage, a gas station and the *Strip Meet* lot. There is no speed limit here.
-- **Gas stations**: 6 in total (4 in the city, 1 on the interstate, 1 at the track). Use the prompt at a pump with your car nearby. Fuel drains as you drive, faster with bigger engines.
-- **Car meets**: Downtown Lot, Neon Plaza, Rest Stop and Strip Meet. Park there and stay near your car to earn cash every 30 s. You earn more when more cars are parked.
-- **Garages**: Midnight Motors (downtown) and Strip Garage (track). Walk up to the blue terminal to open the garage UI.
+- **Gas stations**: 8 in total (6 in the city, 1 off the interstate, 1 at the track). Use the prompt at a pump with your car nearby. Fuel drains as you drive, faster with bigger engines.
+- **Car meets**: Downtown Lot, Neon Plaza, Warehouse Lot, Rest Stop and Strip Meet. Park there and stay near your car to earn cash every 30 s. You earn more when more cars are parked.
+- **Garages**: Midnight Motors (downtown), Westside Customs, and Strip Garage (track). Walk up to the blue terminal to open the garage UI.
 - **Day/night cycle**: a 24-minute day. Headlights switch on at night, and underglow looks best after dark.
 
 ## Cars and upgrades
@@ -107,7 +107,8 @@ src/
       CarFactory     builds car models from parts; cosmetics
       CarService     spawn / enter / exit / upgrades / fuel / pumps (all validated)
       Lanes          lane polylines for traffic and police spawns
-      Traffic        kinematic NPC traffic and police patrols
+      Traffic        NPC traffic spawned around players: city cars drive the street grid
+                     with turns, highway cars follow the elevated lanes; police patrols
       Police         violations, pull-overs, pursuits, roadblocks, spikes, helicopter
       Racing         quarter/half-mile drag strips, christmas tree, timing
       Meets          car meet detection & payouts

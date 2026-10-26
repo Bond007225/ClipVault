@@ -56,8 +56,9 @@ function Lanes.closest(lane: Lane, pos: Vector3): (number, number)
 	local flat = Vector3.new(pos.X, 0, pos.Z)
 	local bestS, bestD = 0, math.huge
 	for i = 1, #lane.Points - 1 do
-		local a = lane.Points[i]
-		local b = lane.Points[i + 1]
+		local pa, pb = lane.Points[i], lane.Points[i + 1]
+		local a = Vector3.new(pa.X, 0, pa.Z)
+		local b = Vector3.new(pb.X, 0, pb.Z)
 		local ab = b - a
 		local len = ab.Magnitude
 		if len > 0 then
@@ -84,9 +85,10 @@ function Lanes.findSpawn(pos: Vector3, minDist: number, maxDist: number, facing:
 		if d0 < maxDist then
 			for _, offset in { -maxDist * 0.6, -minDist * 1.2, minDist * 1.2, maxDist * 0.6 } do
 				local p, dir = Lanes.sample(lane, s0 + offset)
-				local dist = (p - Vector3.new(pos.X, 0, pos.Z)).Magnitude
+				local dist = (Vector3.new(p.X, 0, p.Z) - Vector3.new(pos.X, 0, pos.Z)).Magnitude
 				if dist >= minDist and dist <= maxDist then
-					local score = -dist * 0.01 + math.random()
+					-- prefer the same level (elevated highway vs streets)
+					local score = -dist * 0.01 + math.random() - math.abs(p.Y - pos.Y) * 0.3
 					if facing and facing.Magnitude > 0 then
 						score -= (p - pos).Unit:Dot(facing.Unit) * 2
 					end
