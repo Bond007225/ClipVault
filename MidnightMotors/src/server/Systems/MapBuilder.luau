@@ -57,6 +57,14 @@ function rng:NextInteger(a: number, b: number): number
 end
 
 export type TreeLights = { Stage: BasePart, Amber: { BasePart }, Green: BasePart, Red: BasePart }
+export type EventRoute = {
+	Id: string,
+	Laps: number,
+	Checkpoints: { Vector3 },
+	Radius: number,
+	Grid: { CFrame }, -- ground-level starting slots, best first
+	TimeLimit: number,
+}
 export type Strip = {
 	Name: string,
 	StartX: number,
@@ -75,6 +83,7 @@ MapBuilder.Layout = {
 	SpeedCameras = {} :: { { Position: Vector3, Flash: BasePart } },
 	Spawn = CFrame.new(),
 	TrackBox = { Min = Vector3.new(DX + 7000, -50, -900), Max = Vector3.new(DX + 11300, 500, -60) },
+	EventRoutes = {} :: { [string]: EventRoute },
 }
 local Layout = MapBuilder.Layout
 
@@ -349,9 +358,10 @@ local function buildGarage(centre: Vector3, name: string, facing: Vector3)
 		l.Brightness = 1.5
 		l.Parent = newPart(parent, Vector3.new(6, 0.4, 6), cf * CFrame.new(i * 40, 31.8, 66), Color3.fromRGB(255, 255, 240), Enum.Material.Neon)
 	end
-	local terminal = newPart(parent, Vector3.new(4, 7, 2), cf * CFrame.new(0, 3.5, 40), Color3.fromRGB(0, 120, 220), Enum.Material.Neon)
+	-- terminal stands at the open front of the building so it is easy to reach
+	local terminal = newPart(parent, Vector3.new(4, 7, 2), cf * CFrame.new(0, 3.5, 28), Color3.fromRGB(0, 120, 220), Enum.Material.Neon)
 	terminal.Name = "GarageTerminal"
-	prompt(terminal, "Open Garage", name, 0, 16)
+	prompt(terminal, "Open Garage", name, 0, 24)
 	local pads = {}
 	for i = -1, 1 do
 		local padCf = cf * CFrame.new(i * 40, 0, -40)
@@ -898,6 +908,80 @@ local function inBand(x: number, z: number): boolean
 	return false
 end
 
+----------------------------------------------------------------------
+-- Race event routes (checkpoints follow real roads)
+----------------------------------------------------------------------
+local function gridSlots(start: Vector3, dir: Vector3, lateral: number): { CFrame }
+	local right = dir:Cross(Vector3.yAxis)
+	local out = {}
+	for i = 0, 11 do
+		local row = i // 2
+		local side = if i % 2 == 0 then -1 else 1
+		local p = start - dir * (row * 18) + right * (side * lateral)
+		table.insert(out, CFrame.lookAt(p, p + dir))
+	end
+	return out
+end
+
+local function buildEventRoutes()
+	local function node(i: number, j: number): Vector3
+		return Vector3.new(-C + i * CELL, ROAD_TOP, -C + j * CELL)
+	end
+	-- Downtown Circuit: rectangle of streets around the towers, clockwise
+	local a, b, c, d = node(6, 6), node(12, 6), node(12, 12), node(6, 12)
+	Layout.EventRoutes.DowntownCircuit = {
+		Id = "DowntownCircuit",
+		Laps = 2,
+		Checkpoints = { (a + b) / 2, b, (b + c) / 2, c, (c + d) / 2, d, (d + a) / 2, a },
+		Radius = 45,
+		Grid = gridSlots(a + Vector3.new(200, 0, 0), Vector3.xAxis, 8),
+		TimeLimit = 300,
+	}
+	-- Cross-Town Sprint: zig-zag from the west side to the east side
+	Layout.EventRoutes.CrossTownSprint = {
+		Id = "CrossTownSprint",
+		Laps = 1,
+		Checkpoints = { node(4, 11), node(4, 8), node(9, 8), node(11, 8), node(11, 13), node(15, 13), node(17, 13) },
+		Radius = 45,
+		Grid = gridSlots(node(1, 11) + Vector3.new(60, 0, 0), Vector3.xAxis, 8),
+		TimeLimit = 300,
+	}
+	-- Ring Run: inner carriageway of the elevated ring, one lap
+	local o = H - 24
+	local y = DECK_TOP
+	Layout.EventRoutes.RingRun = {
+		Id = "RingRun",
+		Laps = 1,
+		Checkpoints = {
+			Vector3.new(o, y, -o),
+			Vector3.new(o, y, 0),
+			Vector3.new(o, y, o),
+			Vector3.new(0, y, o),
+			Vector3.new(-o, y, o),
+			Vector3.new(-o, y, 0),
+			Vector3.new(-o, y, -o),
+			Vector3.new(-H + 1100, y, -o),
+		},
+		Radius = 70,
+		Grid = gridSlots(Vector3.new(-H + 900, y, -o), Vector3.xAxis, 10),
+		TimeLimit = 420,
+	}
+	-- Interstate Top Speed: eastbound carriageway, flat out
+	Layout.EventRoutes.InterstateRun = {
+		Id = "InterstateRun",
+		Laps = 1,
+		Checkpoints = {
+			Vector3.new(X0 + 2500, y, 24),
+			Vector3.new(X0 + 5000, y, 24),
+			Vector3.new(X0 + 7500, y, 24),
+			Vector3.new(X0 + 8400, y, 24),
+		},
+		Radius = 70,
+		Grid = gridSlots(Vector3.new(X0 + 400, y, 24), Vector3.xAxis, 10),
+		TimeLimit = 300,
+	}
+end
+
 local function buildCountryside()
 	local placed = 0
 	local attempts = 0
@@ -997,10 +1081,16 @@ function MapBuilder.init()
 	buildRing()
 	buildInterstate()
 	buildTrackComplex()
+	buildEventRoutes()
 	buildCountryside()
 
 	-- player spawn at the downtown garage
 	local garage = Layout.Garages[1]
+	for _, g in Layout.Garages do
+		if g.Name == "MIDNIGHT MOTORS" then
+			garage = g
+		end
+	end
 	local spawnPos = garage.Terminal.Position + Vector3.new(0, 0, -20)
 	local spawn = Instance.new("SpawnLocation")
 	spawn.Anchored = true

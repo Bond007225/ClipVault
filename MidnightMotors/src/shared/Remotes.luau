@@ -14,12 +14,14 @@ local EVENTS = {
 	"SetCosmetic", -- (key, optionName)
 	"SetTuning", -- (key, value)
 	"ExitCar", -- ()
+	"EventJoin", -- (join: boolean)
 	-- server -> client
 	"ProfileUpdated", -- (profileSnapshot)
 	"Notify", -- (text, kind)
 	"OpenGarage", -- ()
 	"RaceUpdate", -- (payload)
 	"CameraFlash", -- ()
+	"EventUpdate", -- (payload)
 }
 
 local FUNCTIONS = {

@@ -1,9 +1,11 @@
 --!strict
--- Garage screen (opened from a garage terminal): buy/switch cars, install
--- performance upgrades, paint & body kits, and free tuning sliders. All
--- purchases are requests; the server validates price, ownership and location.
+-- Main menu (G key, HUD button, or a garage terminal): shop for cars, spawn
+-- the cars you own, install performance upgrades, paint & body kits, free
+-- tuning, and join race events. All purchases are requests; the server
+-- validates price, ownership and whether you're allowed right now.
 
 local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -20,10 +22,12 @@ local gui: ScreenGui
 local root: Frame
 local content: ScrollingFrame
 local statsPanel: Frame
-local tab = "Dealership"
+local tab = "My Cars"
 local profile: any = nil
+local eventStatus: any = nil
+local eventStatusAt = 0
 
-local TABS = { "Dealership", "Performance", "Visual", "Tuning" }
+local TABS = { "Shop", "My Cars", "Performance", "Visual", "Tuning", "Events" }
 
 local function clear(frame: Instance)
 	for _, c in frame:GetChildren() do
@@ -49,29 +53,35 @@ end
 ----------------------------------------------------------------------
 -- Tabs
 ----------------------------------------------------------------------
-local function renderDealership()
-	for _, carId in Config.CarOrder do
+local function carRow(carId: string): Frame
+	local def = Config.Cars[carId]
+	local data = profile.Cars[carId]
+	local stats = CarStats.compute(carId, data)
+	local f = row(76)
+	local name = UI.label(f, def.Name, UDim2.new(0.6, 0, 0, 26), UDim2.fromOffset(12, 6), 20, UI.Colors.Text, Enum.Font.GothamBlack)
+	name.TextXAlignment = Enum.TextXAlignment.Left
+	local info = UI.label(
+		f,
+		string.format("Class %s (%d)  •  %s  •  %d mph  •  %s lbs", stats.Class, stats.Rating, def.Drivetrain, math.floor(stats.TopSpeedMph), tostring(def.Weight)),
+		UDim2.new(0.65, 0, 0, 20),
+		UDim2.fromOffset(12, 34),
+		13,
+		UI.Colors.Dim
+	)
+	info.TextXAlignment = Enum.TextXAlignment.Left
+	return f
+end
+
+local function renderShop()
+	local order = table.clone(Config.CarOrder)
+	table.sort(order, function(a, b)
+		return Config.Cars[a].Price < Config.Cars[b].Price
+	end)
+	for _, carId in order do
 		local def = Config.Cars[carId]
-		local stats = CarStats.compute(carId, nil)
-		local owned = profile.Cars[carId] ~= nil
-		local f = row(76)
-		local name = UI.label(f, def.Name, UDim2.new(0.6, 0, 0, 26), UDim2.fromOffset(12, 6), 20, UI.Colors.Text, Enum.Font.GothamBlack)
-		name.TextXAlignment = Enum.TextXAlignment.Left
-		local info = UI.label(
-			f,
-			string.format("Class %s (%d)  •  %s  •  %d mph  •  %s lbs", stats.Class, stats.Rating, def.Drivetrain, math.floor(stats.TopSpeedMph), tostring(def.Weight)),
-			UDim2.new(0.65, 0, 0, 20),
-			UDim2.fromOffset(12, 34),
-			13,
-			UI.Colors.Dim
-		)
-		info.TextXAlignment = Enum.TextXAlignment.Left
-		if profile.Selected == carId then
-			UI.label(f, "DRIVING", UDim2.fromOffset(120, 40), UDim2.new(1, -132, 0, 18), 16, UI.Colors.Good, Enum.Font.GothamBlack)
-		elseif owned then
-			UI.button(f, "Select & Spawn", UDim2.fromOffset(130, 40), UDim2.new(1, -142, 0, 18), UI.Colors.Accent, function()
-				Remotes.event("SelectCar"):FireServer(carId)
-			end)
+		local f = carRow(carId)
+		if profile.Cars[carId] then
+			UI.label(f, "OWNED", UDim2.fromOffset(130, 40), UDim2.new(1, -142, 0, 18), 16, UI.Colors.Good, Enum.Font.GothamBlack)
 		else
 			local afford = profile.Cash >= def.Price
 			UI.button(f, "Buy " .. UI.money(def.Price), UDim2.fromOffset(130, 40), UDim2.new(1, -142, 0, 18), if afford then UI.Colors.Good else Color3.fromRGB(80, 80, 90), function()
@@ -79,6 +89,67 @@ local function renderDealership()
 			end)
 		end
 	end
+end
+
+local function renderMyCars()
+	for _, carId in Config.CarOrder do
+		if profile.Cars[carId] then
+			local f = carRow(carId)
+			local selected = profile.Selected == carId
+			if selected then
+				UI.label(f, "SELECTED", UDim2.fromOffset(100, 20), UDim2.new(1, -250, 0, 28), 13, UI.Colors.Pink, Enum.Font.GothamBlack)
+			end
+			UI.button(f, "Spawn", UDim2.fromOffset(130, 40), UDim2.new(1, -142, 0, 18), UI.Colors.Accent, function()
+				Remotes.event("SpawnCar"):FireServer(carId)
+				GarageUI.close()
+			end)
+		end
+	end
+	local hint = row(46)
+	UI.label(hint, "Spawning puts your car on the nearest road. Upgrades and paint apply to the SELECTED car.", UDim2.new(1, -24, 1, 0), UDim2.fromOffset(12, 0), 12, UI.Colors.Dim)
+end
+
+local function renderEvents()
+	local st = eventStatus
+	if st then
+		st = table.clone(st)
+		st.endsIn = math.max(0, st.endsIn - (os.clock() - eventStatusAt))
+	end
+	local f = row(150)
+	if not st or st.phase == "Idle" or not st.eventId then
+		local secs = if st then math.floor(st.endsIn) else 0
+		UI.label(f, "NEXT RACE EVENT", UDim2.new(1, -24, 0, 30), UDim2.fromOffset(12, 10), 20, UI.Colors.Accent, Enum.Font.GothamBlack)
+		UI.label(f, if st then string.format("Opens in %d:%02d", secs // 60, secs % 60) else "Waiting for the server...", UDim2.new(1, -24, 0, 30), UDim2.fromOffset(12, 50), 18, UI.Colors.Text)
+	else
+		local joined = table.find(st.joined, player.DisplayName) ~= nil
+		local title = UI.label(f, string.upper(st.name), UDim2.new(1, -170, 0, 30), UDim2.fromOffset(12, 10), 22, UI.Colors.Pink, Enum.Font.GothamBlack)
+		title.TextXAlignment = Enum.TextXAlignment.Left
+		local desc = UI.label(f, st.desc, UDim2.new(1, -170, 0, 36), UDim2.fromOffset(12, 42), 13, UI.Colors.Dim)
+		desc.TextXAlignment = Enum.TextXAlignment.Left
+		local status = if st.phase == "Lobby"
+			then string.format("Join window closes in %ds  •  %d/%d racers", math.floor(st.endsIn), #st.joined, st.maxRacers)
+			else "Race in progress"
+		local sl = UI.label(f, status, UDim2.new(1, -170, 0, 22), UDim2.fromOffset(12, 84), 15, UI.Colors.Text)
+		sl.TextXAlignment = Enum.TextXAlignment.Left
+		local names = UI.label(f, table.concat(st.joined, ", "), UDim2.new(1, -170, 0, 36), UDim2.fromOffset(12, 108), 12, UI.Colors.Dim)
+		names.TextXAlignment = Enum.TextXAlignment.Left
+		if st.phase == "Lobby" then
+			UI.button(f, if joined then "Leave" else "JOIN RACE", UDim2.fromOffset(140, 50), UDim2.new(1, -152, 0, 50), if joined then UI.Colors.Bad else UI.Colors.Good, function()
+				Remotes.event("EventJoin"):FireServer(not joined)
+			end)
+		end
+	end
+	for _, id in Config.Events.Order do
+		local i = Config.Events.Info[id]
+		local r = row(56)
+		local t = UI.label(r, i.Name, UDim2.new(1, -24, 0, 22), UDim2.fromOffset(12, 6), 16, UI.Colors.Text, Enum.Font.GothamBlack)
+		t.TextXAlignment = Enum.TextXAlignment.Left
+		local d = UI.label(r, i.Desc, UDim2.new(1, -24, 0, 20), UDim2.fromOffset(12, 30), 12, UI.Colors.Dim)
+		d.TextXAlignment = Enum.TextXAlignment.Left
+	end
+	local pays = Config.Events.Payouts
+	local note = row(40)
+	UI.label(note, string.format("Payouts: 1st %s  •  2nd %s  •  3rd %s  •  every finisher +%s", UI.money(pays[1]), UI.money(pays[2]), UI.money(pays[3]), UI.money(Config.Events.FinishPay)), UDim2.new(1, -24, 1, 0), UDim2.fromOffset(12, 0), 13, UI.Colors.Good)
 end
 
 local function renderPerformance()
@@ -242,8 +313,12 @@ local function render()
 		return
 	end
 	clear(content)
-	if tab == "Dealership" then
-		renderDealership()
+	if tab == "Shop" then
+		renderShop()
+	elseif tab == "My Cars" then
+		renderMyCars()
+	elseif tab == "Events" then
+		renderEvents()
 	elseif tab == "Performance" then
 		renderPerformance()
 	elseif tab == "Visual" then
@@ -263,13 +338,24 @@ local function render()
 	end
 end
 
-function GarageUI.open()
+function GarageUI.open(toTab: string?)
+	if toTab then
+		tab = toTab
+	end
 	root.Visible = true
 	render()
 end
 
 function GarageUI.close()
 	root.Visible = false
+end
+
+function GarageUI.toggle(toTab: string?)
+	if root.Visible and (not toTab or toTab == tab) then
+		GarageUI.close()
+	else
+		GarageUI.open(toTab)
+	end
 end
 
 function GarageUI.init()
@@ -286,7 +372,7 @@ function GarageUI.init()
 	size.MaxSize = Vector2.new(1100, 720)
 	size.Parent = root
 
-	local title = UI.label(root, "MIDNIGHT MOTORS GARAGE", UDim2.new(0.6, 0, 0, 40), UDim2.fromOffset(18, 8), 26, UI.Colors.Accent, Enum.Font.GothamBlack)
+	local title = UI.label(root, "MIDNIGHT MOTORS", UDim2.new(0.6, 0, 0, 40), UDim2.fromOffset(18, 8), 26, UI.Colors.Accent, Enum.Font.GothamBlack)
 	title.TextXAlignment = Enum.TextXAlignment.Left
 	local cash = UI.label(root, "$0", UDim2.fromOffset(200, 40), UDim2.new(1, -270, 0, 8), 24, UI.Colors.Good, Enum.Font.GothamBlack)
 	cash.Name = "Cash"
@@ -300,7 +386,7 @@ function GarageUI.init()
 	tl.Padding = UDim.new(0, 8)
 	tl.Parent = tabs
 	for _, name in TABS do
-		local b = UI.button(tabs, name, UDim2.fromOffset(140, 38), UDim2.new(), Color3.fromRGB(50, 50, 62), function()
+		local b = UI.button(tabs, name, UDim2.fromOffset(118, 38), UDim2.new(), Color3.fromRGB(50, 50, 62), function()
 			tab = name
 			render()
 		end)
@@ -325,7 +411,9 @@ function GarageUI.init()
 end
 
 function GarageUI.start()
-	Remotes.event("OpenGarage").OnClientEvent:Connect(GarageUI.open)
+	Remotes.event("OpenGarage").OnClientEvent:Connect(function()
+		GarageUI.open("Performance")
+	end)
 	Remotes.event("ProfileUpdated").OnClientEvent:Connect(function(p)
 		profile = p
 		render()
@@ -334,21 +422,28 @@ function GarageUI.start()
 		profile = Remotes.func("GetProfile"):InvokeServer()
 		render()
 	end)
-	-- close automatically when you walk/drive away from the terminal
-	task.spawn(function()
-		local openedAt: Vector3? = nil
-		while true do
-			task.wait(0.5)
-			local char = player.Character
-			local hrp = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
-			if root.Visible and hrp then
-				openedAt = openedAt or hrp.Position
-				if (hrp.Position - (openedAt :: Vector3)).Magnitude > 60 then
-					GarageUI.close()
-				end
-			else
-				openedAt = nil
+	Remotes.event("EventUpdate").OnClientEvent:Connect(function(payload)
+		if payload.type == "Status" then
+			eventStatus = payload
+			eventStatusAt = os.clock()
+			if tab == "Events" then
+				render()
 			end
+		end
+	end)
+	-- keep the Events tab countdown ticking
+	task.spawn(function()
+		while true do
+			task.wait(1)
+			if root.Visible and tab == "Events" then
+				render()
+			end
+		end
+	end)
+	-- G opens/closes the menu anywhere
+	UserInputService.InputBegan:Connect(function(input, processed)
+		if not processed and input.KeyCode == Enum.KeyCode.G then
+			GarageUI.toggle()
 		end
 	end)
 end

@@ -11,6 +11,7 @@ local ORDER = {
 	"Traffic",
 	"Police",
 	"Racing",
+	"Events",
 	"Meets",
 	"World",
 }

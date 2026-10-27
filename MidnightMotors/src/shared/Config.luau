@@ -508,6 +508,25 @@ Config.Racing = {
 	RecordBonus = 500,
 }
 
+-- Race events: one opens every Interval seconds; players join from the menu
+Config.Events = {
+	Interval = 180, -- seconds between events
+	FirstDelay = 45, -- first event after server start
+	LobbyTime = 40, -- how long the join window stays open
+	CountdownTime = 5,
+	MaxRacers = 12,
+	Payouts = { 2500, 1500, 900 }, -- 1st, 2nd, 3rd
+	FinishPay = 300, -- everyone who finishes
+	-- descriptions shown in the menu; routes are built by MapBuilder
+	Order = { "DowntownCircuit", "CrossTownSprint", "RingRun", "InterstateRun" },
+	Info = {
+		DowntownCircuit = { Name = "Downtown Circuit", Desc = "2 laps around the downtown towers. Tight 90° corners." },
+		CrossTownSprint = { Name = "Cross-Town Sprint", Desc = "Point-to-point dash from the west suburbs to the east side." },
+		RingRun = { Name = "Ring Highway Run", Desc = "One full lap of the elevated ring highway, dodging traffic." },
+		InterstateRun = { Name = "Interstate Top Speed", Desc = "Flat-out sprint down the interstate. Pure top speed." },
+	},
+}
+
 Config.Meet = {
 	PayoutInterval = 30,
 	PayPerCar = 40,

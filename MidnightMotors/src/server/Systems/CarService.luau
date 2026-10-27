@@ -15,6 +15,7 @@ local Remotes = require(Shared.Remotes)
 local PlayerData = require(script.Parent.PlayerData)
 local MapBuilder = require(script.Parent.MapBuilder)
 local CarFactory = require(script.Parent.CarFactory)
+local Lanes = require(script.Parent.Lanes)
 
 local CarService = {}
 
@@ -76,6 +77,20 @@ function CarService.getDrivenCar(player: Player): Model?
 		return car
 	end
 	return nil
+end
+
+-- Buying, upgrading and spawning work anywhere, except during a police
+-- chase or a race event. Notifies the player when refused.
+function CarService.canShop(player: Player): boolean
+	if ((player:GetAttribute("Heat") :: number?) or 0) > 0 then
+		notify(player, "Not while the police are after you!", "warn")
+		return false
+	end
+	if player:GetAttribute("InEvent") then
+		notify(player, "Not during a race event.", "warn")
+		return false
+	end
+	return true
 end
 
 function CarService.isNearGarage(player: Player): boolean
@@ -223,14 +238,16 @@ local function connectCar(player: Player, car: Model)
 				exitSeat(occ)
 				return
 			end
-			chassis.Anchored = false
 			car:SetAttribute("Driver", player.UserId)
 			drivePrompt.Enabled = false
-			local ok, err = pcall(function()
-				chassis:SetNetworkOwner(player)
-			end)
-			if not ok then
-				warn("[CarService] SetNetworkOwner failed:", err)
+			if not car:GetAttribute("Frozen") then
+				chassis.Anchored = false
+				local ok, err = pcall(function()
+					chassis:SetNetworkOwner(player)
+				end)
+				if not ok then
+					warn("[CarService] SetNetworkOwner failed:", err)
+				end
 			end
 			mileage[player] = { last = chassis.Position, acc = (mileage[player] and mileage[player].acc) or 0 }
 		else
@@ -239,6 +256,33 @@ local function connectCar(player: Player, car: Model)
 			task.spawn(park, car)
 		end
 	end)
+end
+
+local function spotIsFree(pos: Vector3): boolean
+	for _, folder in vehiclesFolder:GetChildren() do
+		for _, other in folder:GetChildren() do
+			if other:IsA("Model") and (other:GetPivot().Position - pos).Magnitude < 16 then
+				return false
+			end
+		end
+	end
+	return true
+end
+
+-- A free spot in a driving lane close to `pos`, or nil if no road is nearby
+function CarService.findRoadSpot(pos: Vector3): CFrame?
+	for _ = 1, 4 do
+		local cf, lane = Lanes.findSpawn(pos, 15, 140, nil)
+		if cf and lane then
+			if lane.Kind == "Street" then
+				cf = cf * CFrame.new(9, 0, 0) -- right-hand lane, not the centre line
+			end
+			if spotIsFree(cf.Position) then
+				return cf
+			end
+		end
+	end
+	return nil
 end
 
 function CarService.spawnCar(player: Player, at: CFrame?): Model?
@@ -271,8 +315,15 @@ function CarService.spawnCar(player: Player, at: CFrame?): Model?
 	local chassis = car:FindFirstChild("Chassis") :: BasePart
 	chassis.Anchored = true
 
-	-- choose a spawn point: given CFrame, else the free pad at the nearest garage
+	-- choose a spawn point: given CFrame, else the road next to the player,
+	-- else a free pad at the nearest garage
 	local target = at
+	if not target then
+		local root = rootOf(player)
+		if root then
+			target = CarService.findRoadSpot(root.Position)
+		end
+	end
 	if not target then
 		local root = rootOf(player)
 		local here = if root then root.Position else MapBuilder.Layout.Spawn.Position
@@ -336,15 +387,72 @@ local function refreshCar(player: Player)
 end
 
 ----------------------------------------------------------------------
+-- Race events: freeze a player's car on a grid slot, then release it
+----------------------------------------------------------------------
+function CarService.placeOnGrid(player: Player, gridCf: CFrame): Model?
+	local hum = humanoidOf(player)
+	if not hum then
+		return nil
+	end
+	local car = CarService.getCar(player)
+	if not car then
+		car = CarService.spawnCar(player, gridCf)
+	end
+	if not car then
+		return nil
+	end
+	local chassis = car:FindFirstChild("Chassis") :: BasePart
+	local driverSeat = car:FindFirstChild("DriverSeat") :: VehicleSeat
+	car:SetAttribute("Frozen", true)
+	pcall(function()
+		chassis:SetNetworkOwner(nil)
+	end)
+	chassis.Anchored = true
+	chassis.AssemblyLinearVelocity = Vector3.zero
+	chassis.AssemblyAngularVelocity = Vector3.zero
+	CarFactory.place(car, gridCf)
+	car:SetAttribute("Fuel", car:GetAttribute("FuelCapacity"))
+	if hum.SeatPart ~= driverSeat then
+		if hum.SeatPart then
+			exitSeat(hum)
+		end
+		task.defer(function()
+			if driverSeat.Occupant == nil then
+				driverSeat:Sit(hum)
+			end
+		end)
+	end
+	return car
+end
+
+function CarService.release(player: Player, car: Model)
+	car:SetAttribute("Frozen", nil)
+	local chassis = car:FindFirstChild("Chassis") :: BasePart?
+	if not chassis or not car.Parent then
+		return
+	end
+	if car:GetAttribute("Driver") == player.UserId then
+		chassis.Anchored = false
+		pcall(function()
+			chassis:SetNetworkOwner(player)
+		end)
+	end
+end
+
+----------------------------------------------------------------------
 -- Remote handlers
 ----------------------------------------------------------------------
-local function onSpawnCar(player: Player)
+local function onSpawnCar(player: Player, carId: unknown)
 	if not allow(player, "SpawnCar", 1) then
 		return
 	end
-	if (player:GetAttribute("Heat") :: number? or 0) > 0 then
-		notify(player, "You can't call your car while the police are after you!", "warn")
+	if not CarService.canShop(player) then
 		return
+	end
+	local profile = PlayerData.get(player)
+	if profile and typeof(carId) == "string" and profile.Cars[carId] and profile.Selected ~= carId then
+		profile.Selected = carId
+		PlayerData.changed(player)
 	end
 	local now = os.clock()
 	if lastSpawn[player] and now - lastSpawn[player] < SPAWN_COOLDOWN then
@@ -357,7 +465,7 @@ local function onSpawnCar(player: Player)
 	end
 	lastSpawn[player] = now
 	if CarService.spawnCar(player) then
-		notify(player, "Your car is waiting at the nearest garage.", "info")
+		notify(player, "Your car is ready. Walk up and press E to drive.", "info")
 	end
 end
 
@@ -374,8 +482,7 @@ local function onBuyCar(player: Player, carId: unknown)
 		notify(player, "You already own this car.", "warn")
 		return
 	end
-	if not CarService.isNearGarage(player) then
-		notify(player, "Visit a garage to buy cars.", "warn")
+	if not CarService.canShop(player) then
 		return
 	end
 	if not PlayerData.trySpend(player, def.Price) then
@@ -397,8 +504,7 @@ local function onSelectCar(player: Player, carId: unknown)
 	if not profile or not profile.Cars[carId] then
 		return
 	end
-	if not CarService.isNearGarage(player) then
-		notify(player, "Visit a garage to switch cars.", "warn")
+	if not CarService.canShop(player) then
 		return
 	end
 	profile.Selected = carId
@@ -426,8 +532,7 @@ local function onBuyUpgrade(player: Player, category: unknown, tier: unknown)
 	if tier ~= tier or tier % 1 ~= 0 or tier < 1 or tier > #def.Tiers then
 		return
 	end
-	if not CarService.isNearGarage(player) then
-		notify(player, "Upgrades can only be installed at a garage.", "warn")
+	if not CarService.canShop(player) then
 		return
 	end
 	local current = data.Upgrades[category] or 1
@@ -486,8 +591,7 @@ local function onSetCosmetic(player: Player, key: unknown, value: unknown)
 	if data.Cosmetics[key] == value then
 		return
 	end
-	if not CarService.isNearGarage(player) then
-		notify(player, "Visit a garage to customise your car.", "warn")
+	if not CarService.canShop(player) then
 		return
 	end
 	if not PlayerData.trySpend(player, price) then
@@ -508,7 +612,7 @@ local function onSetTuning(player: Player, key: unknown, value: unknown)
 	if not spec or not data or value ~= value then
 		return
 	end
-	if not CarService.isNearGarage(player) then
+	if not CarService.canShop(player) then
 		return
 	end
 	local snapped = math.clamp(math.round(value / spec.Step) * spec.Step, spec.Min, spec.Max)

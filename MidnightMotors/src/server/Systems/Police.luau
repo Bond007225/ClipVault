@@ -507,8 +507,8 @@ end
 
 function Police.reportViolation(player: Player, kind: string, detail: string, fine: number, witness: any?)
 	local w = watches[player]
-	if not w then
-		return
+	if not w or player:GetAttribute("InEvent") then
+		return -- race events are sanctioned: no tickets mid-race
 	end
 	local now = os.clock()
 	if w.cooldowns[kind] and now - w.cooldowns[kind] < 8 then
@@ -566,7 +566,7 @@ local function monitor(player: Player, dt: number)
 	player:SetAttribute("SpeedLimit", if limit == math.huge then 0 else limit)
 	local vel = chassis.AssemblyLinearVelocity
 	local mph = Vector3.new(vel.X, 0, vel.Z).Magnitude * Config.STUDS_TO_MPH
-	if zone == "Track" then
+	if zone == "Track" or player:GetAttribute("InEvent") then
 		return
 	end
 

@@ -82,7 +82,8 @@ local function reconcile(data: any): Profile
 			end
 		end
 	end
-	if next(p.Cars) == nil then
+	-- everyone always owns the free starter car
+	if not p.Cars.Hatch then
 		p.Cars.Hatch = CarStats.defaultData("Hatch")
 	end
 	if typeof(p.Selected) ~= "string" or not p.Cars[p.Selected] then

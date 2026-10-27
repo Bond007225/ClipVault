@@ -21,7 +21,8 @@ To regenerate that file after changing code, you need [Lune](https://lune-org.gi
 ```
 python tools/build_place.py                              # scripts -> MidnightMotors.rbxlx
 lune run tools/harness.luau MidnightMotors.rbxlx place   # bake the map into it
-lune run tools/harness.luau MidnightMotors.rbxlx both    # smoke-test server + client startup
+lune run tools/harness.luau MidnightMotors.rbxlx both    # smoke-test server + client startup, traffic, menus
+lune run tools/harness.luau MidnightMotors.rbxlx events  # play a full race event with a fake player
 ```
 
 ## Controls
@@ -36,6 +37,8 @@ lune run tools/harness.luau MidnightMotors.rbxlx both    # smoke-test server + c
 | Exit car | F (or jump on mobile) | Y | Exit button |
 | Manual gearbox toggle / shift | M, then E / Q | RB / LB | – |
 | Flip car upright | R (when slow) | – | – |
+| Open menu (shop, my cars, upgrades, events) | G | – | Menu button |
+| Join / leave the open race event | J | – | Join button on the banner |
 
 ## What's in the world
 
@@ -82,6 +85,31 @@ How a chase plays out:
 - **Escaped:** no unit within about 480 studs, and no helicopter overhead, for 12 s. You earn a cash reward.
 - Speed cameras flash and mail you a fine. Half the time they also send a unit after you.
 
+## Menu, shop and spawning
+
+- Every player always owns the free **Kanto Hatch**. It's added back even to old saves.
+- Press **G**, or use the **Menu / Shop** button, from anywhere. The tabs are:
+  - **Shop**: buy cars.
+  - **My Cars**: **Spawn** any car you own. It appears in the nearest driving lane next to you.
+  - **Performance**, **Visual** and **Tuning**: these apply to the selected car.
+  - **Events**: see and join race events.
+- Shopping and spawning work anywhere, except during a police chase or a race event. The garage terminals still open the same menu.
+
+## Race events
+
+Every 3 minutes an event opens a 40-second join window. Join with **J**, from the banner, or from the menu's Events tab.
+
+When the window closes, every racer's car is moved to a grid slot and frozen. If you don't have a car out, one is spawned for you. After a 5-second countdown, you race through glowing checkpoint beacons. The HUD shows your lap, checkpoint, live position and time.
+
+| Event | Route |
+|---|---|
+| Downtown Circuit | 2 laps of the streets around the downtown towers |
+| Cross-Town Sprint | Point-to-point zig-zag from the west side to the east side |
+| Ring Highway Run | A full lap of the elevated ring, through traffic |
+| Interstate Top Speed | A flat-out run down the interstate |
+
+Payouts are $2,500 for 1st, $1,500 for 2nd and $900 for 3rd, and every finisher also gets $300. Police don't ticket racers during an event.
+
 ## Drag racing
 
 1. Drive into the pit lot off the interstate exit at the track.
@@ -111,6 +139,7 @@ src/
                      with turns, highway cars follow the elevated lanes; police patrols
       Police         violations, pull-overs, pursuits, roadblocks, spikes, helicopter
       Racing         quarter/half-mile drag strips, christmas tree, timing
+      Events         scheduled race events: lobby, grid, countdown, checkpoints, payouts
       Meets          car meet detection & payouts
       World          day/night cycle, headlights
   client/          -> StarterPlayerScripts.Client
@@ -118,7 +147,8 @@ src/
     Controllers/
       DriveController  input -> CarPhysics, driving actions
       HUD              speedo, police meters, race overlay, notifications
-      GarageUI         dealership / performance / visual / tuning
+      GarageUI         main menu: shop / my cars / performance / visual / tuning / events
+      RaceEventUI      event banner, countdown, checkpoint beacons, race panel, results
       Sirens           local lightbar flashing
       UI               UI helpers
 ```

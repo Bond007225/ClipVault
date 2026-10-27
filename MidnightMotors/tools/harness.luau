@@ -31,11 +31,12 @@ local function signal()
 	end
 	return s
 end
-local signals = setmetatable({}, { __mode = "k" })
+local signals = {}
+-- Lune hands out a fresh userdata per access, so key signals by path
 local function sigFor(inst, name)
-	signals[inst] = signals[inst] or {}
-	signals[inst][name] = signals[inst][name] or signal()
-	return signals[inst][name]
+	local key = inst:GetFullName() .. "::" .. name
+	signals[key] = signals[key] or signal()
+	return signals[key]
 end
 
 local I = roblox.implementMethod
@@ -168,7 +169,7 @@ services.ContextActionService = {
 	UnbindAction = function() end,
 	GetButton = function() return nil end,
 }
-services.UserInputService = { IsKeyDown = function() return false end }
+services.UserInputService = { IsKeyDown = function() return false end, InputBegan = signal() }
 
 local realGetService = game.GetService
 local gameProxy = setmetatable({}, {
@@ -232,8 +233,16 @@ globals.workspace = globals.workspace
 roblox.implementMethod("Workspace", "Raycast", function() return nil end)
 P("Workspace", "Gravity", function() return 196.2 end, function() end)
 
+local fakeChars = {}
 globals.__get = function(obj, prop)
 	if typeof(obj) == "Instance" then
+		if prop == "Character" then
+			return fakeChars[obj.Name]
+		elseif prop == "Health" then
+			return 100
+		elseif prop == "SeatPart" or prop == "Occupant" then
+			return nil
+		end
 		if prop == "Position" then
 			if obj:IsA("BasePart") then return obj.CFrame.Position end
 			return obj.Position
@@ -261,7 +270,7 @@ local function runScript(inst)
 		return result
 	end
 	local src = inst.Source
-	for _, prop in { "Position", "AssemblyLinearVelocity", "AssemblyAngularVelocity", "AssemblyMass", "AssemblyCenterOfMass" } do
+	for _, prop in { "Position", "AssemblyLinearVelocity", "AssemblyAngularVelocity", "AssemblyMass", "AssemblyCenterOfMass", "Character", "Health", "SeatPart", "Occupant" } do
 		src = src:gsub("([%w_%.]+)%." .. prop .. "(%s*)(=?)(=?)", function(obj, sp, e1, e2)
 			if e1 == "=" and e2 ~= "=" then
 				return obj .. "." .. prop .. sp .. e1 .. e2 -- assignment, keep
@@ -295,6 +304,65 @@ if mode == "place" then
 	print("baked map parts:", #map:GetDescendants())
 	fs.writeFile(placePath, roblox.serializePlace(game, true))
 	print("wrote", placePath)
+	process.exit(0)
+end
+if mode == "events" then
+	-- fake player with a character, joined into a race event end-to-end
+	runSide("server")
+	local systems = realGetService(game, "ServerScriptService"):FindFirstChild("Server"):FindFirstChild("Systems")
+	local Events = cache[systems:FindFirstChild("Events")]
+	local CarService = cache[systems:FindFirstChild("CarService")]
+	local PlayerData = cache[systems:FindFirstChild("PlayerData")]
+	local MapBuilder = cache[systems:FindFirstChild("MapBuilder")]
+	local plr = roblox.Instance.new("Player")
+	plr.Name = "Tester"
+	plr.UserId = 42
+	plr.DisplayName = "Tester"
+	plr.Parent = realGetService(game, "Players")
+	local char = roblox.Instance.new("Model")
+	char.Name = "Tester"
+	local hrp = roblox.Instance.new("Part")
+	hrp.Name = "HumanoidRootPart"
+	hrp.CFrame = roblox.CFrame.new(150, 3, 130)
+	hrp.Parent = char
+	local hum = roblox.Instance.new("Humanoid")
+	hum.Parent = char
+	char.Parent = realGetService(game, "Workspace")
+	fakeChars[plr.Name] = char
+	services.Players.GetPlayers = function() return { plr } end
+	services.Players.GetPlayerByUserId = function(_, id) return if id == 42 then plr else nil end
+	services.Players.PlayerAdded:Fire(plr)
+	task.wait(0.5)
+	print("profile cash:", PlayerData.get(plr) and PlayerData.get(plr).Cash, "owns Hatch:", PlayerData.get(plr) and PlayerData.get(plr).Cars.Hatch ~= nil)
+	local spot = CarService.findRoadSpot(hrp.CFrame.Position)
+	print("road spawn spot:", spot and spot.Position)
+	local car = CarService.spawnCar(plr)
+	print("spawned car:", car and car.Name, car and car.PrimaryPart.CFrame.Position)
+	-- join an event
+	Events._force("DowntownCircuit")
+	local remotes = realGetService(game, "ReplicatedStorage"):FindFirstChild("Remotes")
+	sigFor(remotes:FindFirstChild("EventJoin"), "OnServerEvent"):Fire(plr, true)
+	task.wait(0.2)
+	print("joined:", #Events._state.joined, "phase:", Events._state.phase)
+	Events._state.phaseEnds = 0
+	task.wait(0.3)
+	print("phase after lobby:", Events._state.phase, "racers:", #Events._state.racers, "InEvent:", plr:GetAttribute("InEvent"))
+	local c = CarService.getCar(plr)
+	print("car frozen on grid:", c and c:GetAttribute("Frozen"), c and c.PrimaryPart.Anchored, c and c.PrimaryPart.CFrame.Position)
+	Events._state.phaseEnds = 0
+	task.wait(0.3)
+	print("phase after countdown:", Events._state.phase, "frozen:", c and c:GetAttribute("Frozen"))
+	-- drive through every checkpoint (teleport the chassis) as the driver
+	c:SetAttribute("Driver", 42)
+	local route = MapBuilder.Layout.EventRoutes.DowntownCircuit
+	for lap = 1, route.Laps do
+		for _, cp in route.Checkpoints do
+			c.PrimaryPart.CFrame = roblox.CFrame.new(cp + roblox.Vector3.new(0, 2, 0))
+			task.wait(0.15)
+		end
+	end
+	task.wait(0.3)
+	print("after driving route: phase", Events._state.phase, "cash", PlayerData.get(plr).Cash, "EventWins", PlayerData.get(plr).Stats.EventWins)
 	process.exit(0)
 end
 if mode == "both" then
@@ -334,6 +402,8 @@ if mode == "both" then
 	-- fake local player for the client
 	local plr = roblox.Instance.new("Player")
 	plr.Name = "Tester"
+	plr.DisplayName = "Tester"
+	plr.UserId = 1
 	local pg = roblox.Instance.new("Folder")
 	pg.Name = "PlayerGui"
 	pg.Parent = plr
@@ -341,6 +411,36 @@ if mode == "both" then
 	runSide("client")
 	task.wait(1)
 	for _, g in pg:GetChildren() do print("PlayerGui:", g.ClassName, g.Name, #g:GetDescendants()) end
+	-- drive the client UI with real payloads
+	local ctrl = realGetService(game, "StarterPlayer"):FindFirstChild("StarterPlayerScripts"):FindFirstChild("Client"):FindFirstChild("Controllers")
+	local GarageUI = cache[ctrl:FindFirstChild("GarageUI")]
+	local RaceEventUI = cache[ctrl:FindFirstChild("RaceEventUI")]
+	local Shared = realGetService(game, "ReplicatedStorage"):FindFirstChild("Shared")
+	local CarStats = cache[Shared:FindFirstChild("CarStats")]
+	local remotes = realGetService(game, "ReplicatedStorage"):FindFirstChild("Remotes")
+	local profile = { Cash = 50000, Selected = "Hatch", Cars = { Hatch = CarStats.defaultData("Hatch"), Coupe = CarStats.defaultData("Coupe") }, Best = { Quarter = 12.3 }, Stats = { Races = 1, Wins = 0, Escapes = 2, Busts = 1 } }
+	sigFor(remotes:FindFirstChild("ProfileUpdated"), "OnClientEvent"):Fire(profile)
+	sigFor(remotes:FindFirstChild("EventUpdate"), "OnClientEvent"):Fire({ type = "Status", phase = "Lobby", eventId = "RingRun", name = "Ring Highway Run", desc = "x", endsIn = 30, joined = { "Tester" }, maxRacers = 12 })
+	task.wait(0.1)
+	for _, t in { "Shop", "My Cars", "Performance", "Visual", "Tuning", "Events" } do
+		local ok, e = pcall(GarageUI.open, t)
+		print("menu tab", t, ok, e)
+	end
+	local cps = { roblox.Vector3.new(0, 0, 0), roblox.Vector3.new(100, 0, 0) }
+	for _, msg in {
+		{ type = "Start", checkpoints = cps, laps = 2, radius = 45, countdown = 5, racers = 3 },
+		{ type = "Go" },
+		{ type = "Checkpoint", cp = 2, total = 2, lap = 1 },
+		{ type = "Lap", lap = 2, laps = 2 },
+		{ type = "Finished", place = 1, time = 83.4 },
+		{ type = "Results", name = "Ring Highway Run", results = { { name = "Tester", place = 1, time = 83.4, status = "Finished" }, { name = "Bot", status = "DNF" } } },
+	} do
+		local ok, e = pcall(function()
+			RaceEventUI._onUpdate(msg)
+			RaceEventUI._render()
+		end)
+		print("race msg", msg.type, ok, e)
+	end
 	process.exit(0)
 end
 if mode == "server" then

@@ -11,6 +11,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Remotes = require(Shared.Remotes)
 
 local UI = require(script.Parent.UI)
+local GarageUI = require(script.Parent.GarageUI)
 
 local HUD = {}
 
@@ -241,12 +242,18 @@ function HUD.init()
 	refs.mode.TextXAlignment = Enum.TextXAlignment.Right
 
 	-- buttons (bottom left)
-	UI.button(gui, "Call My Car", UDim2.fromOffset(130, 38), UDim2.new(0, 16, 1, -100), UI.Colors.Accent, function()
+	UI.button(gui, "Menu / Shop (G)", UDim2.fromOffset(150, 38), UDim2.new(0, 16, 1, -100), UI.Colors.Pink, function()
+		GarageUI.toggle("Shop")
+	end)
+	UI.button(gui, "Spawn Car", UDim2.fromOffset(120, 38), UDim2.new(0, 174, 1, -100), UI.Colors.Accent, function()
 		Remotes.event("SpawnCar"):FireServer()
+	end)
+	UI.button(gui, "Events", UDim2.fromOffset(90, 38), UDim2.new(0, 302, 1, -100), UI.Colors.Warn, function()
+		GarageUI.toggle("Events")
 	end)
 	local help = UI.label(
 		gui,
-		"W/S throttle & brake • A/D steer • Space handbrake • Shift nitro\nF exit car • M manual • E/Q shift • R flip • E near car to drive",
+		"W/S throttle & brake • A/D steer • Space handbrake • Shift nitro • F exit car\nG menu & shop • J join race event • M manual • E/Q shift • R flip • E near car to drive",
 		UDim2.fromOffset(460, 36),
 		UDim2.new(0, 16, 1, -54),
 		12,
