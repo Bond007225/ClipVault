@@ -15,6 +15,7 @@ local EVENTS = {
 	"SetTuning", -- (key, value)
 	"ExitCar", -- ()
 	"EventJoin", -- (join: boolean)
+	"ClaimQuest", -- (index)
 	-- server -> client
 	"ProfileUpdated", -- (profileSnapshot)
 	"Notify", -- (text, kind)
@@ -22,6 +23,8 @@ local EVENTS = {
 	"RaceUpdate", -- (payload)
 	"CameraFlash", -- ()
 	"EventUpdate", -- (payload)
+	"Combo", -- (payload) near-miss combo updates
+	"LevelUp", -- (level)
 }
 
 local FUNCTIONS = {

@@ -801,7 +801,7 @@ function Police.init()
 	mapParams.FilterType = Enum.RaycastFilterType.Include
 	mapParams.FilterDescendantsInstances = { workspace:WaitForChild("Map") }
 
-	Traffic.OnPlayerCollision = function(player: Player, kind: string, pos: Vector3)
+	Traffic.onPlayerCollision(function(player: Player, kind: string, pos: Vector3)
 		if kind == "HitPolice" then
 			Police.reportViolation(player, "HitPolice", "Hitting a police car", 800, nil)
 		else
@@ -810,7 +810,7 @@ function Police.init()
 				Police.reportViolation(player, "Reckless", "Reckless driving (collision)", 400, witness)
 			end
 		end
-	end
+	end)
 end
 
 function Police.start()

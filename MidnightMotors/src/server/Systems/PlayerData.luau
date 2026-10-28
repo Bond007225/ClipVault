@@ -23,6 +23,8 @@ export type Profile = {
 	Cars: { [string]: CarStats.CarData },
 	Selected: string,
 	Best: { [string]: number },
+	XP: number,
+	Quests: { Day: number, List: { { Id: string, Progress: number, Claimed: boolean } } },
 	Stats: { [string]: number },
 }
 
@@ -43,6 +45,8 @@ local function defaultProfile(): Profile
 		Cars = { Hatch = CarStats.defaultData("Hatch") },
 		Selected = "Hatch",
 		Best = {},
+		XP = 0,
+		Quests = { Day = -1, List = {} },
 		Stats = { Busts = 0, Escapes = 0, Races = 0, Wins = 0, Tickets = 0, Miles = 0 },
 	}
 end
@@ -58,6 +62,8 @@ local function reconcile(data: any): Profile
 	p.Cash = if typeof(p.Cash) == "number" then p.Cash else base.Cash
 	p.Cars = if typeof(p.Cars) == "table" then p.Cars else base.Cars
 	p.Best = if typeof(p.Best) == "table" then p.Best else {}
+	p.XP = if typeof(p.XP) == "number" then p.XP else 0
+	p.Quests = if typeof(p.Quests) == "table" and typeof(p.Quests.List) == "table" then p.Quests else { Day = -1, List = {} }
 	p.Stats = if typeof(p.Stats) == "table" then p.Stats else base.Stats
 	for k, v in base.Stats do
 		if p.Stats[k] == nil then

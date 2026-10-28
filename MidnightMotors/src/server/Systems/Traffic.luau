@@ -58,8 +58,11 @@ local rng = Random.new()
 
 local TRAFFIC_GEOMETRY = { "Hatch", "Coupe", "Pickup", "Muscle", "Rally" }
 
--- Set by the Police system: (player, kind, position) -> ()
-Traffic.OnPlayerCollision = nil :: ((Player, string, Vector3) -> ())?
+-- Systems interested in players crashing into traffic: (player, kind, position)
+local collisionListeners: { (Player, string, Vector3) -> () } = {}
+function Traffic.onPlayerCollision(fn: (Player, string, Vector3) -> ())
+	table.insert(collisionListeners, fn)
+end
 
 ----------------------------------------------------------------------
 -- Grid helpers
@@ -168,8 +171,8 @@ local function onTouched(npc: Npc, hit: BasePart)
 		npc.lastHit = now
 		npc.speed = 0
 		npc.stuck = 2
-		if Traffic.OnPlayerCollision then
-			Traffic.OnPlayerCollision(player, if npc.isPolice then "HitPolice" else "HitCar", npc.chassis.Position)
+		for _, fn in collisionListeners do
+			task.spawn(fn, player, if npc.isPolice then "HitPolice" else "HitCar", npc.chassis.Position)
 		end
 	end
 end
@@ -281,6 +284,10 @@ local function destroyNpc(index: number)
 	local npc = npcs[index]
 	table.remove(npcs, index)
 	npc.model:Destroy()
+end
+
+function Traffic.getAll(): { Npc }
+	return npcs
 end
 
 function Traffic.getPatrols(): { Npc }

@@ -527,6 +527,51 @@ Config.Events = {
 	},
 }
 
+-- Near-miss combos: pass traffic closely at speed to build a multiplier.
+-- Keep passing within ComboWindow seconds or the combo is banked; crash and
+-- it is lost.
+Config.NearMiss = {
+	MinSpeedMph = 45,
+	ComboWindow = 5,
+	-- gap = side-to-side clearance in studs when you pass a car
+	Grades = {
+		{ Name = "PAINT SCRATCHER", MaxGap = 1.5, Points = 200 },
+		{ Name = "SKIMMED", MaxGap = 3, Points = 100 },
+		{ Name = "CLOSE SHAVE", MaxGap = 5, Points = 50 },
+	},
+	MultiplierPerPass = 0.25,
+	MaxMultiplier = 10,
+	CashPerPoint = 0.2,
+	XpPerCash = 0.5,
+}
+
+-- Levels: XP needed for the next level = Base + PerLevel * level
+Config.Progression = {
+	BaseXp = 400,
+	XpPerLevel = 150,
+	-- minimum level to install each upgrade tier (Stock, Street, Sport, Race, Pro)
+	TierLevels = { 1, 1, 5, 15, 30 },
+	XpPerMile = 25,
+	XpDragRun = 80,
+	XpEventFinish = 300,
+	XpEscapePerHeat = 150,
+}
+
+-- Daily quests: three are picked each day from this pool
+Config.Quests = {
+	PerDay = 3,
+	Pool = {
+		{ Id = "Distance", Text = "Drive %d miles", Goal = 5, Cash = 750, Xp = 300 },
+		{ Id = "NearMiss", Text = "Get %d near misses", Goal = 25, Cash = 900, Xp = 400 },
+		{ Id = "TopSpeed", Text = "Hit %d mph", Goal = 130, Cash = 600, Xp = 250, Max = true },
+		{ Id = "Combo", Text = "Bank a x%d combo", Goal = 3, Cash = 800, Xp = 350, Max = true },
+		{ Id = "EventFinish", Text = "Finish %d race event", Goal = 1, Cash = 1200, Xp = 500 },
+		{ Id = "DragRun", Text = "Complete %d drag runs", Goal = 2, Cash = 700, Xp = 300 },
+		{ Id = "Escape", Text = "Escape the police %d time", Goal = 1, Cash = 1000, Xp = 450 },
+		{ Id = "MeetTime", Text = "Spend %d seconds parked at a car meet", Goal = 120, Cash = 500, Xp = 200 },
+	},
+}
+
 Config.Meet = {
 	PayoutInterval = 30,
 	PayPerCar = 40,
